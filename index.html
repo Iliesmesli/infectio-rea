@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Infectio Réa — anti-infectieux, germes, antibiogramme</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Infectio">
+<meta name="theme-color" content="#2F6FA8">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+ --bg:#f5f7f8; --card:#ffffff; --ink:#15212b; --muted:#5d6b76; --line:#dde3e7;
+ --pri:#0e6670; --pri2:#e3f1f2; --ok:#1d7a46; --okbg:#e5f4ea; --warn:#9a5a00; --warnbg:#fff4e0; --danger:#b42318; --dangerbg:#fdecea;
+ --fr:#1f4fa3; --eu:#5a3fa0; --us:#7a5a1a; --radius:12px;
+}
+@media (prefers-color-scheme: dark){
+ :root{ --bg:#0f1519; --card:#172026; --ink:#e7edf0; --muted:#97a6b0; --line:#2a363e; --pri:#4fb3bb; --pri2:#18343a; --ok:#5cc58b; --okbg:#173023; --warn:#f0b357; --warnbg:#33270f; --danger:#ff8a80; --dangerbg:#3a1b19; --fr:#8fb1f0; --eu:#b9a5f0; --us:#e0c27c; }
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+a{color:var(--pri)}
+header{position:sticky;top:0;z-index:10;background:var(--card);border-bottom:1px solid var(--line)}
+.top{display:flex;gap:12px;align-items:center;padding:10px 16px;max-width:1150px;margin:auto;flex-wrap:wrap}
+.brand{font-weight:700;font-size:17px;white-space:nowrap}
+.brand span{color:var(--pri)}
+.search{position:relative;flex:1;min-width:200px}
+.search input{width:100%;padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);font:inherit}
+#qres{position:absolute;left:0;right:0;top:42px;background:var(--card);border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);padding:6px;max-height:60vh;overflow:auto}
+#qres a{display:block;padding:7px 10px;border-radius:8px;text-decoration:none;color:var(--ink)}
+#qres a:hover{background:var(--pri2)}
+#patchip{border:1px solid var(--line);background:var(--pri2);color:var(--ink);border-radius:999px;padding:6px 12px;font:inherit;font-size:13px;cursor:pointer;max-width:100%;text-align:left}
+nav#tabs{display:flex;gap:2px;overflow-x:auto;max-width:1150px;margin:auto;padding:0 10px}
+nav#tabs a{padding:9px 12px;text-decoration:none;color:var(--muted);border-bottom:2px solid transparent;white-space:nowrap;font-weight:500}
+nav#tabs a.on{color:var(--pri);border-color:var(--pri)}
+main{max-width:1150px;margin:16px auto;padding:0 12px 60px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px 18px 22px;margin-bottom:16px}
+h2{margin:.2em 0 .6em;font-size:21px} h3{font-size:16px;margin:1.3em 0 .5em} h4{margin:.2em 0 .6em;font-size:16px}
+h3.grp{color:var(--pri);border-bottom:1px solid var(--line);padding-bottom:4px}
+small,.small{font-size:12.5px} .muted{color:var(--muted)}
+.warn{color:var(--warn)} .danger{color:var(--danger)}
+.note{background:var(--pri2);border-radius:10px;padding:10px 12px;margin:10px 0;font-size:14px}
+.diverg{background:var(--warnbg);border-left:4px solid var(--warn);border-radius:8px;padding:10px 12px;margin:10px 0}
+.warnbox{background:var(--warnbg);border-radius:8px;padding:8px 10px;margin:6px 0;font-size:13.5px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px}
+.tile{display:block;border:1px solid var(--line);border-radius:10px;padding:10px 12px;text-decoration:none;color:var(--ink);background:var(--bg)}
+.tile:hover{border-color:var(--pri)}
+.tile b{display:block;margin-bottom:2px} .tile span{font-size:12.5px;color:var(--muted)}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:6px}
+.toolbar input{flex:1;min-width:180px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);font:inherit}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.seg button{border:0;background:transparent;color:var(--ink);padding:7px 11px;font:inherit;cursor:pointer;border-right:1px solid var(--line)}
+.seg button:last-child{border-right:0}
+.seg button.on{background:var(--pri);color:#fff}
+.seg.sm button{padding:3px 8px;font-size:12.5px;min-width:36px}
+.seg.sm button.on.vS{background:var(--ok)} .seg.sm button.on.vSFP{background:var(--warn)} .seg.sm button.on.vR{background:var(--danger)} .seg.sm button.on.v0{background:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:999px;padding:6px 12px;font:inherit;font-size:13.5px;cursor:pointer}
+.chip.on{background:var(--pri);border-color:var(--pri);color:#fff}
+.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;padding:8px 13px;font:inherit;cursor:pointer;text-decoration:none}
+.btn.primary{background:var(--pri);border-color:var(--pri);color:#fff}
+.btn.ghost{background:transparent}
+.photo{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:6px 0 12px}
+.photo.off .btn.primary{opacity:.55}
+.iso{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:10px 0;background:var(--bg)}
+.isohead{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.isohead select{flex:1;min-width:200px}
+select,input[type=number],input[type=text]{padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);font:inherit}
+.x{border:0;background:transparent;color:var(--danger);font-size:18px;cursor:pointer}
+.pheno{display:flex;flex-wrap:wrap;gap:14px;margin:8px 0;font-size:14px}
+.chk{display:flex;gap:6px;align-items:center}
+.astgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:4px 16px;margin-top:8px}
+.astrow{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:3px 0;border-bottom:1px dashed var(--line);font-size:13.5px}
+.astrow span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.astrow.nat span{color:var(--muted)}
+.addab{margin-top:8px}
+.isores{border-top:2px solid var(--line);padding-top:10px;margin-top:14px}
+.isores.comb{border-top-color:var(--pri)}
+details.opt{border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin:8px 0;background:var(--card)}
+details.opt.best{border-color:var(--ok);box-shadow:0 0 0 1px var(--ok) inset}
+details.opt summary{cursor:pointer;list-style:none}
+details.opt summary::-webkit-details-marker{display:none}
+.rank{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--pri);color:#fff;font-size:13px;font-weight:700;margin-right:4px}
+.best .rank{background:var(--ok)}
+.rationale{margin:6px 0;font-size:14px}
+.pill{display:inline-block;border-radius:999px;padding:2px 9px;font-size:12px;margin:2px 2px;border:1px solid var(--line);text-decoration:none;color:var(--ink)}
+.pill.ok,.pill.sS{background:var(--okbg);border-color:transparent}
+.pill.caution,.pill.sSFP,.pill.sE{background:var(--warnbg);border-color:transparent}
+.pill.no,.pill.sR,.pill.danger{background:var(--dangerbg);border-color:transparent}
+.drugdose{margin:8px 0;padding-top:6px;border-top:1px dashed var(--line)}
+.dose{font-size:13.8px;margin:4px 0 6px;display:grid;gap:4px}
+.calc{font-weight:600}
+.tag{display:inline-block;background:var(--pri2);color:var(--pri);border-radius:6px;padding:1px 7px;font-size:12px;font-weight:600;margin-right:4px}
+.tag.tstd{background:var(--bg);color:var(--muted)} .tag.t2{background:var(--okbg);color:var(--ok)} .tag.t3{background:var(--warnbg);color:var(--warn)}
+.admin{font-size:13px;color:var(--muted)}
+.patbox{border:1px solid var(--pri);border-radius:10px;padding:8px 12px;margin:10px 0;background:var(--pri2)}
+.patbox .dose{border-bottom:1px dashed var(--line);padding-bottom:6px}
+dl.fiche{display:grid;grid-template-columns:200px 1fr;gap:8px 16px;margin:12px 0}
+dl.fiche dt{font-weight:600;color:var(--pri)} dl.fiche dd{margin:0}
+dl.fiche ul{margin:4px 0;padding-left:18px}
+.tbl{border-collapse:collapse;width:100%;font-size:13.5px}
+.tbl th,.tbl td{border-bottom:1px solid var(--line);padding:5px 8px;text-align:left;vertical-align:top}
+.tbl th{width:200px;font-weight:600}
+.tbl tr.cur{background:var(--okbg)}
+.tbl.tx th{width:auto} .tbl.tx td:first-child{white-space:nowrap}
+.refs{margin:6px 0;display:flex;flex-wrap:wrap;gap:4px}
+.ref{font-size:11.5px;border-radius:6px;padding:1px 7px;text-decoration:none;border:1px solid var(--line)}
+.ref.FR{color:var(--fr)} .ref.EU{color:var(--eu)} .ref.US{color:var(--us)}
+.reflist{padding-left:20px} .reflist li{margin:4px 0;font-size:14px}
+.back{display:inline-block;margin-bottom:6px;text-decoration:none;font-size:14px}
+.grid3{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+.grid3 label{display:grid;gap:4px;font-size:13.5px}
+.grid3 label.chk{display:flex}
+.kv{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:6px}
+.kv div{display:flex;justify-content:space-between;background:var(--bg);border-radius:8px;padding:6px 10px;font-size:13.5px}
+.kv div.hl{background:var(--okbg)}
+.dur{background:var(--bg);border-radius:10px;padding:8px 12px;margin:10px 0;font-size:14px}
+.dur ul{margin:4px 0;padding-left:18px}
+details.excl,details.more{margin:8px 0;font-size:13.5px}
+details.excl summary,details.more summary{cursor:pointer;color:var(--muted)}
+.spin{display:inline-block;width:12px;height:12px;border:2px solid var(--line);border-top-color:var(--pri);border-radius:50%;animation:s 1s linear infinite;vertical-align:-1px}
+@keyframes s{to{transform:rotate(360deg)}}
+abbr[data-g]{text-decoration:underline dotted;text-underline-offset:2px;cursor:help}
+#gpop{position:fixed;left:50%;transform:translateX(-50%);bottom:18px;z-index:50;max-width:min(560px,92vw);background:var(--ink);color:var(--card);padding:10px 14px;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.25);font-size:14px}
+dl.gloss{display:grid;grid-template-columns:140px 1fr;gap:4px 14px;font-size:14px} dl.gloss dt{font-weight:700;color:var(--pri)} dl.gloss dd{margin:0}
+@media (max-width:640px){dl.gloss{grid-template-columns:100px 1fr}}
+footer{max-width:1150px;margin:0 auto 30px;padding:0 16px;color:var(--muted);font-size:12.5px}
+@media (max-width:640px){ dl.fiche{grid-template-columns:1fr} dl.fiche dt{margin-top:6px} .astgrid{grid-template-columns:1fr} .tbl th{width:120px} h2{font-size:19px} .card{padding:14px} }
+.brandlogo{width:30px;height:30px;border-radius:7px;vertical-align:middle;margin-right:8px}
+.brand-footer{display:flex;align-items:center;justify-content:center;gap:18px;max-width:1150px;margin:34px auto 14px;padding:18px 16px 0;border-top:1px solid var(--line)}
+.brand-badge{display:flex;align-items:center;justify-content:center;width:112px;height:112px;border-radius:22px;background:var(--card);border:1px solid var(--line);flex-shrink:0;overflow:hidden}
+.brand-badge img{max-width:84px;max-height:84px;object-fit:contain;border-radius:12px}
+</style>
+</head>
+<body>
+<header>
+ <div class="top">
+  <div class="brand"><img src="icon-192.png" alt="" class="brandlogo">Infectio <span>Réa</span></div>
+  <div class="search"><input id="q" type="search" placeholder="Rechercher une molécule, un germe, une pathologie, un examen…" autocomplete="off"><div id="qres" hidden></div></div>
+  <button id="patchip" title="Paramètres patient"></button>
+ </div>
+ <nav id="tabs"></nav>
+</header>
+<main id="main"></main>
+<div id="gpop" hidden></div>
+<div class="brand-footer">
+ <div class="brand-badge" title="CHU de Bordeaux"><img src="chu-bordeaux.jpg" alt="Logo CHU de Bordeaux"></div>
+ <div class="brand-badge" title="Infectio Réa"><img src="icon-192.png" alt="Logo Infectio Réa"></div>
+</div>
+<footer>Aide à la décision pour cliniciens de réanimation — ne remplace ni l'avis infectiologique/pharmacologique, ni les protocoles locaux, ni les RCP. Posologies pour l'adulte. Références : SFAR/SRLF, SPILF/HAS, CA-SFM 2025, ePOPI, GPR, abxbmi, ESCMID, IDSA (onglet Références). Version 1.5 du 14/11/2026.</footer>
+<script src="js/refs.js"></script>
+<script src="js/glossary.js"></script>
+<script src="js/drugs_ab.js"></script>
+<script src="js/drugs_af_av.js"></script>
+<script src="js/germs.js"></script>
+<script src="js/patho.js"></script>
+<script src="js/exams.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
