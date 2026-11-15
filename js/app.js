@@ -120,7 +120,7 @@ function doseBlock(d, regKey, extras=true){
  const calcLine = window.calcDose(d.id, regKey, P);
  let html = `<div class="dose"><div><span class="tag ${regKey==='std'&&d.dose.high?'tstd':''}">${regKey==='snc'?'Dose méningée / SNC':regKey==='high'?'Posologie de départ en réanimation (forte posologie)':(d.dose.high?'Posologie standard — désescalade possible (souche S, patient stabilisé, hors SNC)':'Posologie')}</span> ${reg.includes('<br>')? fmtText(reg) : esc(reg)}</div>`;
  if(calcLine) html += `<div class="calc">🧮 ${esc(calcLine)}</div>`;
- if(b && d.renal && d.renal[b]) html += `<div><span class="tag t2">${esc(BAND_L[b])}</span> ${esc(d.renal[b])}</div>`;
+ if(b && d.renal && d.renal[b]) html += `<div><span class="tag t2">${esc(BAND_L[b])}</span> ${/<b>|<br>/.test(d.renal[b])? fmtText(d.renal[b]) : esc(d.renal[b])}</div>`;
  else if(!b) html += `<div class="muted">Renseigner la fonction rénale / l'EER dans l'onglet Patient pour l'adaptation.</div>`;
  if(P.eer==='crrt' && +P.effluent>35) html += `<div class="warn">Dose d'effluent > 35 mL/kg/h : viser le haut de fourchette, STP.</div>`;
  if(W.obese && ob) html += `<div><span class="tag t3">Obésité (IMC ${W.bmi})</span> ${esc(ob.t)}</div>`;
@@ -164,7 +164,7 @@ function viewMolecule(id){
   <dt>Précautions</dt><dd>${d.prec}</dd>
   <dt>Interactions</dt><dd>${d.inter}</dd>
   <dt>Administration</dt><dd>Soluté : ${esc(d.admin.dil)}<br>Mode/durée : ${esc(d.admin.duree)}<br>Stabilité : ${d.admin.stab}</dd>
-  <dt>Adaptation rénale / EER</dt><dd><table class="tbl">${Object.entries(d.renal).map(([k,v])=>`<tr class="${band(P)===k?'cur':''}"><th>${esc(BAND_L[k])}</th><td>${esc(v)}</td></tr>`).join('')}</table></dd>
+  <dt>Adaptation rénale / EER</dt><dd><table class="tbl">${Object.entries(d.renal).map(([k,v])=>`<tr class="${band(P)===k?'cur':''}"><th>${esc(BAND_L[k])}</th><td>${/<b>|<br>/.test(v)? fmtText(v) : esc(v)}</td></tr>`).join('')}</table></dd>
   <dt>Obésité</dt><dd>${esc((window.OBESE[d.id]||{}).t||'—')} ${window.OBESE[d.id]?`<span class="muted">(poids de dosage : ${({TBW:'poids total',ABW:'poids ajusté',IBW:'poids idéal',fixed:'dose fixe'})[window.OBESE[d.id].wt]})</span>`:''}</dd>
   <dt>STP</dt><dd>${esc(d.tdm)}</dd>
   <dt>Diffusion LCS</dt><dd>${esc(d.lcr)}</dd>
@@ -455,7 +455,7 @@ function viewRefs(){
 }
 
 /* ---------- ANTIBIOGRAMME ---------- */
-const APP_VERSION='1.11';
+const APP_VERSION='1.12';
 let SAMPLE = null, sampleImages=false;
 const PHOTO = {msg:'', thumbs:[]}; let PHOTO_TARGET='abg';
 function photoMsg(h){ PHOTO.msg=h; const m=document.getElementById('photomsg'); if(m) m.innerHTML=h; }
@@ -663,65 +663,103 @@ async function readPhotosLocal(files){
 let PAYSX = 'hosp';
 const LVCLS = ['muted','lv1','lv2','lv3','lv4'];
 const lvBadge = (n) => `<span class="lvb ${LVCLS[n||0]}">${esc(window.PAYS.LV[n||0])}</span>`;
+const SITU = [['hosp','Hospitalisé ≥ 24 h dans ce pays (12 derniers mois)'],['rapat','Rapatriement sanitaire / transfert direct d\'un hôpital de ce pays'],['sejour','Voyage ou séjour < 3 mois, sans hospitalisation'],['resid','Réside dans ce pays, sans hospitalisation']];
+function paysRegles(){
+ return `<details class="sec" open><summary><span class="ico">📘</span>Règles générales — valables pour tous les pays et toutes les situations</summary><div class="secbody">
+ <h4>1. Qui dépister à l'admission ? (HCSP 2019)</h4>
+ <table><tr><th>Situation</th><th>Conduite</th></tr>
+ <tr><td>Hospitalisation ≥ 24 h à l'étranger dans les 12 derniers mois</td><td><b>Dépistage BHRe systématique, quel que soit le pays</b> + chambre seule et précautions complémentaires contact jusqu'aux résultats.</td></tr>
+ <tr><td>Rapatriement sanitaire / transfert direct</td><td>Idem, avec <b>précautions spécifiques BHRe d'emblée</b> (organisation selon l'EOH).</td></tr>
+ <tr><td>Séjour ou résidence à l'étranger dans les 3 derniers mois, sans hospitalisation</td><td><b>Analyse de risque</b> : pays (voir la fiche du pays), durée, antibiotiques, soins ou diarrhée sur place → dépistage si risque.</td></tr>
+ <tr><td>Antécédent de portage BHRe ; contact d'un porteur</td><td>Dépistage et précautions selon la procédure EOH.</td></tr></table>
+ <h4>2. Comment ?</h4>
+ <ul class="fl"><li>Écouvillon <b>rectal</b> : EPC + ERG (culture ± PCR rapide des carbapénémases et de vanA/vanB).</li><li>SARM : écouvillon nasal (± périnée, plaies) selon la politique locale.</li><li>A. baumannii et <i>C. auris</i> : pas dans le dépistage BHRe standard ; à demander avec l'EOH si le pays est à risque (sites cutanés, gorge, aspiration trachéale ; aisselles + aines pour <i>C. auris</i>).</li><li>Prévenir l'EOH dès l'entrée ; levée des précautions après un dépistage négatif selon la procédure locale.</li></ul>
+ <h4>3. Antibiothérapie probabiliste (sepsis grave / choc après séjour ou hospitalisation à l'étranger)</h4>
+ <table><tr><th>Bactérie suspectée</th><th>Option</th></tr>
+ <tr><td>Entérobactérie BLSE</td><td>Carbapénème</td></tr>
+ <tr><td>EPC OXA-48</td><td>Ceftazidime-avibactam</td></tr>
+ <tr><td>EPC KPC</td><td>Ceftazidime-avibactam, méropénème-vaborbactam, imipénème-relebactam</td></tr>
+ <tr><td>EPC à métallo-β-lactamase (NDM, VIM, IMP)</td><td>Ceftazidime-avibactam + aztréonam (ou aztréonam-avibactam), céfidérocol</td></tr>
+ <tr><td>A. baumannii résistant aux carbapénèmes</td><td>Avis spécialisé : colistine, céfidérocol, sulbactam forte dose (sulbactam-durlobactam si disponible)</td></tr>
+ <tr><td>SARM</td><td>Linézolide (poumon), daptomycine ou vancomycine (bactériémie)</td></tr>
+ <tr><td>ERG</td><td>Linézolide, daptomycine 10–12 mg/kg</td></tr>
+ <tr><td><i>C. auris</i></td><td>Échinocandine</td></tr></table>
+ <ul class="fl"><li>Couverture des EPC probabiliste : <b>seulement en cas de choc</b> avec hospitalisation récente en pays à risque, avec l'infectiologue, en attendant le dépistage (PCR rapide).</li><li>Après un simple voyage en zone tropicale, environ la moitié des voyageurs acquièrent une entérobactérie BLSE (≈ 70 % au retour d'Asie), portage le plus souvent < 3 mois (VOYAG-R).</li><li>Désescalade dès les résultats du dépistage et des prélèvements.</li></ul>
+ <p class="muted">Le HCSP ne publie volontairement pas de liste de pays. Les niveaux par pays de cette application sont indicatifs (ECDC/OMS 2023–2024, OMS GLASS, Santé publique France, littérature).</p>
+ </div></details>`;
+}
 function viewPaysList(){
  const P=window.PAYS; const q=(window.__paysQ||'');
  const list = q? P.find(q) : P.list;
- return `<section class="card"><h2>🌍 Risque de BMR / BHRe selon le pays</h2>
- <div class="note">Tapez un pays (ici ou dans la barre de recherche générale). Niveaux <b>indicatifs</b> pour l'analyse de risque à l'admission ; le HCSP (2019) ne publie volontairement pas de liste : <b>toute hospitalisation ≥ 24 h à l'étranger dans les 12 derniers mois impose le dépistage BHRe, quel que soit le pays</b>.</div>
+ return `<section class="card"><h2>🌍 BMR / BHRe et séjour à l'étranger</h2>
+ ${paysRegles()}
+ <h3>Préconisations par pays</h3>
  <div class="toolbar"><input type="search" id="paysq" placeholder="Pays (ex. Maroc, Inde, Grèce…)" value="${esc(q)}"></div>
  <div class="tiles" id="paystiles">${paysTiles(list)}</div>
  ${refChips(['hcsp_bhre19','ecdc_who_amr23','ecdc_atlas','who_glass','spf_epc16','spf_bhre22','ruppe15','ecdc_cauris'])}</section>`;
 }
 function paysTiles(list){ const P=window.PAYS; return list.map(c=>`<a class="tile" href="#c-${c.id}"><b>${esc(c.name)}</b><span>EPC ${esc(P.LV[c.c])} · BLSE ${esc(P.LV[c.b])} · A. baumannii ${esc(P.LV[c.a])}</span></a>`).join('')||'<span class="muted">Aucun pays trouvé.</span>'; }
+function epcRegimen(ct){
+ const t=(ct||'').toUpperCase();
+ if(/NDM|VIM|IMP/.test(t)) return 'ceftazidime-avibactam + aztréonam (ou aztréonam-avibactam), ou céfidérocol : seules options actives sur les NDM/VIM, fréquentes ici'+(/OXA|KPC/.test(t)?', et actives aussi sur OXA-48/KPC':'');
+ if(/KPC/.test(t)) return 'ceftazidime-avibactam (ou méropénème-vaborbactam, imipénème-relebactam)';
+ if(/OXA/.test(t)) return 'ceftazidime-avibactam';
+ return 'selon l\'enzyme (PCR rapide)';
+}
 function paysCAT(c){
  const x=PAYSX, dom=!!c.dom, hosp = x==='hosp'||x==='rapat';
- const H=[], T=[];
+ const D=[], PR=[], T=[]; // dépistage, précautions, traitement
+ const G = '<span class="tagg">règle générale</span>', S = '<span class="tags">propre à ce pays</span>';
  if(dom){
-  H.push(`Territoire français : la règle « hospitalisation à l'étranger » ne s'applique pas ; suivre la politique de dépistage de l'établissement / EOH${c.b>=3?' (prévalence de BLSE élevée : dépistage BMR souvent pratiqué)':''}.`);
+  D.push(`Territoire français : pas de dépistage au titre de l'étranger ; politique de l'établissement${c.b>=3?' (BLSE fréquentes : dépistage BMR souvent pratiqué)':''}. ${S}`);
  } else if(hosp){
-  H.push(`<b>Dépistage BHRe recommandé, quel que soit le pays</b> (HCSP 2019) : écouvillon rectal (EPC + ERG), culture ± PCR selon le laboratoire.`);
-  H.push(`<b>Chambre individuelle + précautions complémentaires contact dès l'admission</b>, maintenues jusqu'aux résultats ; ${x==='rapat'?"rapatriement sanitaire / transfert direct : <b>précautions spécifiques BHRe d'emblée</b> (personnel dédié selon l'EOH)":"prévenir l'EOH"} — conduite à tenir après un dépistage négatif selon la procédure locale.`);
-  if(c.a>=3) H.push(`A. baumannii résistant aux carbapénèmes ${lvBadge(c.a)} : discuter avec l'EOH une recherche complémentaire (cutanée, gorge, prélèvement respiratoire si ventilé) et des précautions contact renforcées.`);
-  if(c.k>=2) H.push(`<i>Candida auris</i> circule dans ce pays : dépistage (aisselles + plis inguinaux) à discuter avec l'EOH pour tout patient transféré d'un hôpital de ce pays (ECDC).`);
+  D.push(`<b>OUI, dépistage BHRe systématique</b> (écouvillon rectal : EPC + ERG). ${G}`);
+  if(c.a>=3) D.push(`<b>Ajouter la recherche d'A. baumannii</b> résistant aux carbapénèmes (cutané, gorge, aspiration trachéale) — risque ${lvBadge(c.a)} ici. ${S}`);
+  if(c.k>=2) D.push(`<b>Ajouter le dépistage de <i>C. auris</i></b> (aisselles + aines) — circule dans ce pays. ${S}`);
+  if(c.m>=3) D.push(`Dépistage SARM (nez) conseillé — risque ${lvBadge(c.m)} ici. ${S}`);
+  PR.push(`<b>Chambre seule + précautions complémentaires contact dès l'entrée</b>, jusqu'aux résultats ; prévenir l'EOH. ${G}`);
+  if(x==='rapat') PR.push(`Rapatriement / transfert direct : <b>précautions spécifiques BHRe d'emblée</b>. ${G}`);
  } else {
-  H.push(`Séjour ou résidence sans hospitalisation : <b>pas de dépistage systématique</b> ; analyse de risque (HCSP 2019 : séjour < 3 mois) — pays, durée, antibiotiques reçus, soins ou diarrhée sur place.`);
-  H.push(c.c>=3 ? `Risque EPC ${lvBadge(c.c)} dans ce pays → <b>dépistage BHRe conseillé</b> (écouvillon rectal), surtout si antibiotiques, soins locaux ou séjour prolongé ; précautions contact jusqu'au résultat selon l'EOH.` : `Risque EPC ${lvBadge(c.c)} → dépistage selon l'EOH (non systématique).`);
-  if(c.b>=4) H.push(`Acquisition digestive de BLSE fréquente après simple voyage (environ la moitié des voyageurs en zone tropicale, ≈ 70 % au retour d'Asie ; portage le plus souvent < 3 mois — VOYAG-R) : en tenir compte en probabiliste dans les mois qui suivent.`);
+  if(c.c>=3) { D.push(`<b>Dépistage BHRe conseillé</b> (écouvillon rectal) : risque EPC ${lvBadge(c.c)} dans ce pays, a fortiori si antibiotiques, soins ou diarrhée sur place, ou séjour long. ${S}`); PR.push(`Précautions contact jusqu'au résultat, selon l'EOH. ${G}`); }
+  else D.push(`<b>Pas de dépistage BHRe systématique</b> : risque EPC ${lvBadge(c.c)} dans ce pays ; à discuter seulement si antibiotiques ou soins sur place. ${S}`);
+  if(c.b>=4) D.push(`Portage digestif de BLSE probable dans les 3 mois suivant le séjour (BLSE ${lvBadge(c.b)} ici). ${S}`);
+  if(!PR.length) PR.push(`Précautions standard. ${G}`);
  }
- if(c.b>=3) T.push(`BLSE ${lvBadge(c.b)} : sepsis grave/choc d'origine digestive, urinaire ou nosocomiale après séjour récent → couvrir les BLSE (carbapénème) en attendant le dépistage et les prélèvements.`);
- if(c.c>=3 && (hosp || x==='resid')){
-  const ct=(c.ct||'').toUpperCase(), mbl=/NDM|VIM|IMP/.test(ct);
-  T.push(`EPC ${lvBadge(c.c)} (${esc(c.ct)}) : en cas de <b>choc septique après hospitalisation dans ce pays</b>, discuter avec l'infectiologue une couverture des EPC en attendant le dépistage (PCR rapide des carbapénémases) : OXA-48 → ceftazidime-avibactam ; KPC → ceftazidime-avibactam, méropénème-vaborbactam ou imipénème-relebactam ; métallo-β-lactamases (NDM, VIM, IMP) → ceftazidime-avibactam + aztréonam (ou aztréonam-avibactam), ou céfidérocol.${mbl?' <b>NDM/VIM fréquentes ici : seules les options « MBL » couvrent tous les mécanismes.</b>':''}`);
- }
- if(c.a>=4 && hosp) T.push(`A. baumannii résistant aux carbapénèmes ${lvBadge(c.a)} (ventilation, brûlures, blessés de guerre) : avis spécialisé — colistine, céfidérocol, sulbactam à forte dose (ou sulbactam-durlobactam si disponible). <a href="#g-abaum">→ fiche</a>`);
- if(c.m>=3) T.push(`SARM ${lvBadge(c.m)} : infection grave à cocci Gram positif ou pneumonie nécrosante → linézolide (poumon) ou daptomycine/vancomycine (bactériémie). <a href="#g-saureus">→ fiche</a>`);
- if(c.v>=3 && hosp) T.push(`ERG ${lvBadge(c.v)} : infection grave à entérocoque → linézolide ou daptomycine forte dose (10–12 mg/kg). <a href="#g-efaecium">→ fiche</a>`);
- if(c.k>=2 && hosp) T.push(`<i>C. auris</i> : candidémie → échinocandine en 1re intention (souvent résistant au fluconazole). <a href="#g-cauris">→ fiche</a>`);
- if(!T.length) T.push("Pas de modification de l'antibiothérapie probabiliste liée au pays : suivre l'écologie locale et les facteurs de risque individuels.");
- T.push('Désescalade dès le résultat du dépistage et des prélèvements.');
- return {H,T};
+ // traitement probabiliste individualisé
+ if(c.b>=3) T.push(`<b>Couvrir les BLSE</b> (carbapénème) si sepsis grave ou choc — BLSE ${lvBadge(c.b)} ici. ${S}`);
+ if(c.c>=3 && (hosp || x==='resid')) T.push(`<b>Si choc septique</b> : discuter avec l'infectiologue une couverture des EPC en attendant le dépistage — enzymes dominantes ici : <b>${esc(c.ct)}</b> → ${epcRegimen(c.ct)}. ${S}`);
+ if(c.a>=4 && hosp) T.push(`Pneumonie / bactériémie nosocomiale chez un patient ventilé, brûlé ou blessé : penser à <b>A. baumannii</b> résistant aux carbapénèmes (avis spécialisé). <a href="#g-abaum">→ fiche</a> ${S}`);
+ if(c.m>=3) T.push(`<b>Ajouter un anti-SARM</b> si pneumonie nécrosante ou bactériémie à cocci Gram + : linézolide (poumon), daptomycine/vancomycine (bactériémie). <a href="#g-saureus">→ fiche</a> ${S}`);
+ if(c.v>=3 && hosp) T.push(`Infection grave à entérocoque : penser à l'<b>ERG</b> → linézolide ou daptomycine 10–12 mg/kg. <a href="#g-efaecium">→ fiche</a> ${S}`);
+ if(c.k>=2 && hosp) T.push(`Candidémie : <b>échinocandine</b> (C. auris souvent résistant au fluconazole). <a href="#g-cauris">→ fiche</a> ${S}`);
+ if(!T.length) T.push(`Pas de modification liée à ce pays : écologie locale et facteurs de risque individuels. ${S}`);
+ return {D,PR,T};
 }
 function viewPays(id){
  const P=window.PAYS, c=P.byId(id); if(!c) return '<p>Pays introuvable.</p>';
- const ov=P.overall(c), {H,T}=paysCAT(c);
+ const ov=P.overall(c), {D,PR,T}=paysCAT(c);
  const row=(l,n,extra)=>`<tr><td>${l}${extra?`<br><span class="muted">${extra}</span>`:''}</td><td>${lvBadge(n)}</td></tr>`;
  const ul=a=>'<ul class="fl">'+a.map(x=>`<li>${x}</li>`).join('')+'</ul>';
- return `<section class="card"><a href="#pays" class="muted">← Tous les pays</a>
+ const sl=(SITU.find(s=>s[0]===PAYSX)||SITU[0])[1];
+ return `<section class="card"><a href="#pays" class="muted">← Règles générales et autres pays</a>
  <h2>🌍 ${esc(c.name)} ${lvBadge(ov)}</h2>
  ${c.n?`<div class="dangerbox">${esc(c.n)}</div>`:''}${c.lim?'<div class="note">Données de surveillance limitées : niveaux estimés à partir de la région et des cas importés.</div>':''}
- <table><tr><th>Bactérie</th><th>Niveau</th></tr>
+ <details class="sec"><summary><span class="ico">📊</span>Niveaux de résistance dans ce pays</summary><div class="secbody"><table><tr><th>Bactérie</th><th>Niveau</th></tr>
  ${row('Entérobactéries productrices de carbapénémases (EPC)',c.c,esc(c.ct||''))}
  ${row('Entérobactéries BLSE / C3G-R',c.b)}
  ${row('<i>A. baumannii</i> résistant aux carbapénèmes',c.a)}
  ${row('SARM',c.m)}
  ${row('<i>E. faecium</i> résistant aux glycopeptides (ERG)',c.v)}
  ${row('<i>Candida auris</i>',c.k,['','cas sporadiques','épidémies','transmission étendue'][c.k||0])}
- </table>
- <h3>Situation du patient</h3>
- <div class="seg wrap">${[['hosp','Hospitalisé ≥ 24 h (12 mois)'],['rapat','Rapatriement / transfert direct'],['sejour','Séjour < 3 mois sans hospitalisation'],['resid','Réside dans ce pays']].map(([k,l])=>`<button class="${PAYSX===k?'on':''}" data-paysx="${k}">${l}</button>`).join('')}</div>
- <h3>Dépistage et hygiène</h3>${ul(H)}
- <h3>Antibiothérapie probabiliste</h3>${ul(T)}
- <div class="note">Niveaux indicatifs (ordre de grandeur des souches invasives ; données ECDC/OMS 2023–2024, OMS GLASS, Santé publique France, littérature) : à confronter à l'avis de l'EOH et de l'infectiologue. <a href="#e-depistage">→ Dépistage BMR/BHRe</a></div>
+ </table></div></details>
+ <h3>1. Votre patient</h3>
+ <div class="seg wrap">${SITU.map(([k,l])=>`<button class="${PAYSX===k?'on':''}" data-paysx="${k}">${l}</button>`).join('')}</div>
+ <div class="okbox cat-pays"><b>2. Conduite à tenir — ${esc(c.name)}, ${esc(sl.toLowerCase())}</b>
+ <h4>Dépistage</h4>${ul(D)}
+ <h4>Précautions d'hygiène</h4>${ul(PR)}
+ <h4>Antibiothérapie probabiliste (sepsis grave / choc)</h4>${ul(T)}
+ <p class="muted" style="margin:6px 0 0">Désescalade dès les résultats du dépistage et des prélèvements. Avis EOH / infectiologue.</p></div>
+ <p><a href="#pays">📘 Toutes les règles générales (tous pays, toutes situations) →</a></p>
  ${refChips(['hcsp_bhre19','ecdc_who_amr23','ecdc_atlas','who_glass','spf_epc16','ruppe15','ecdc_cauris'])}</section>`;
 }
 
