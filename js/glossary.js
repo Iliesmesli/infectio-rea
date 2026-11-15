@@ -1,5 +1,12 @@
 /* GLOSSAIRE DES ACRONYMES — affichés au survol / toucher dans toute l'app et listés dans l'onglet Références */
 window.GLOSS = {
+ 'FGSI':'Fournier Gangrene Severity Index (score pronostique)', 'UFGSI':'Uludag Fournier Gangrene Severity Index', 'LRINEC':'Laboratory Risk Indicator for Necrotizing Fasciitis (score)',
+ 'DRP':'Désobstruction rhinopharyngée (lavage des fosses nasales au sérum physiologique)', 'TPN':'Traitement par pression négative (pansement)', 'CIED':'Cardiac implantable electronic device (stimulateur/DAI)',
+ 'DAI':'Défibrillateur automatique implantable', 'TAVI':'Transcatheter aortic valve implantation (remplacement valvulaire aortique percutané)', 'HACEK':'Haemophilus, Aggregatibacter, Cardiobacterium, Eikenella, Kingella',
+ 'ISCVID':'International Society for Cardiovascular Infectious Diseases', 'POET':'Partial Oral vs Intravenous Antibiotic Treatment of Endocarditis (essai)', 'HNF':'Héparine non fractionnée', 'AVK':'Antivitamine K',
+ 'BAV':'Bloc auriculo-ventriculaire', 'AIT':'Accident ischémique transitoire', 'IRIS':'Syndrome inflammatoire de reconstitution immunitaire', 'CrAg':'Antigène cryptococcique',
+ 'G6PD':'Glucose-6-phosphate déshydrogénase', 'GM-CSF':'Granulocyte-macrophage colony-stimulating factor', 'G-CSF':'Granulocyte colony-stimulating factor', 'SGLT2':'Sodium-glucose cotransporter 2 (gliflozines)',
+ 'IAPA':'Influenza-associated pulmonary aspergillosis', 'CAPA':'COVID-19-associated pulmonary aspergillosis', 'MICI':'Maladies inflammatoires chroniques de l\'intestin', 'SHA':'Solution hydro-alcoolique', 'INSTINCT':'Essai IgIV dans les infections nécrosantes des tissus mous',
  'IVSE':'Intraveineux à la seringue électrique (perfusion continue)', 'IVL':'Intraveineux lent', 'DHFR':'Dihydrofolate réductase',
  'NAR':'Neuro-anesthésie-réanimation (unité du CHU de Bordeaux, SAR Pellegrin)', 'VVC':'Voie veineuse centrale', 'VVP':'Voie veineuse périphérique',
  'MREJ':'mecA right-extremity junction (cible PCR du SARM)', 'ARNr':'ARN ribosomique', 'IDE':'Infirmier(ère) diplômé(e) d\'État',

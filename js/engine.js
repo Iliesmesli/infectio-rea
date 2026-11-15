@@ -72,7 +72,7 @@ const NAT = {
  anaer:['amika','genta','tobra','aztreo','temo','colistine','cotrimox']
 };
 const NAT_GERM = { pmirabilis:['colistine','tigec','erava','doxy'], morganella:['colistine','tigec','erava','doxy','amoxclav'], serratia:['colistine','doxy'],
-  efaecium:[], ckrusei:['fluco'], mucor:['vorico','fluco','caspo','mica','anidula'], crypto:['caspo','mica','anidula'], asp:['fluco'] };
+  efaecium:[], ckrusei:['fluco'], mucor:['vorico','fluco','caspo','mica','anidula'], crypto:['caspo','mica','anidula'], asp:['fluco'], fusarium:['fluco','caspo','mica','anidula'], scedo:['fluco','caspo','mica','anidula'] };
 const BL = ['peniG','amox','amoxclav','cloxa','pipetazo','temo','cefazoline','cefotax','ceftriax','ceftaz','cefepime','ceftaroline','ceftolo','cazavi','cefiderocol','merope','imipeneme','ertapeneme','imirele','merovabor','aztreo','aztavi'];
 const PENI = ['peniG','amox','amoxclav','cloxa','pipetazo','temo'];
 
@@ -82,7 +82,7 @@ const EXPECT = {
  nmen:['cefotax','ceftriax'], anaer:['metro','merope','imipeneme','pipetazo'], atyp:['levo','azithro','spira','doxy'],
  cand_s:['caspo','mica','anidula','amphoL','fluco','vorico'], cand_g:['caspo','mica','anidula','amphoL'], cand_p:['fluco','amphoL','caspo','mica','anidula'],
  cand_k:['caspo','mica','anidula','amphoL','vorico'], cand_a:['caspo','mica','anidula'], asp:['vorico','isavu','amphoL','posa'], muco:['amphoL','isavu','posa'],
- crypto:['amphoL','5fc','fluco'], pcp:['cotrimox'], hsv:['aciclo','foscarnet'], vzv:['aciclo'], cmv:['ganci','foscarnet'], flu:['oselta'], covid:['remdesivir'], cdiff:['fidaxo','vanco','metro']
+ crypto:['amphoL','5fc','fluco'], pcp:['cotrimox'], nocardia:['linez','amika','cotrimox'], moule:['vorico','amphoL'], hsv:['aciclo','foscarnet'], vzv:['aciclo'], cmv:['ganci','foscarnet'], flu:['oselta'], covid:['remdesivir'], cdiff:['fidaxo','vanco','metro']
 };
 
 /* ---------- candidats hiérarchisés par groupe ---------- */
@@ -220,6 +220,8 @@ const RULES = {
  muco: ctx => [ C('amphoL',{note:'5 mg/kg/j (10 si cérébral) + chirurgie.'}), C('isavu',{note:'Relais/alternative.'}), C('posa',{note:'Relais.'}) ],
  crypto: ctx => [ C(['amphoL','5fc'],{note:'Induction ≥ 2 sem.'}), C('fluco',{note:'Consolidation/entretien.'}) ],
  pcp: ctx => [ C('cotrimox',{note:'15–20 mg/kg/j de TMP, 21 j.'}) ],
+ nocardia: ctx => [ C(['cotrimox','imipeneme','amika'],{note:'Forme grave, disséminée ou cérébrale : trithérapie (amikacine peu diffusible dans le SNC).', only:['snc','abces','bact'], top:true}), C(['cotrimox','linez'],{note:'Forme grave : association avec bonne diffusion cérébrale.'}), C('cotrimox',{note:'Pierre angulaire : 15 mg/kg/j de TMP en forme grave ; monothérapie si forme cutanée/pulmonaire non grave.'}), C('linez',{note:'Sensibilité quasi constante ; toxicité au long cours.'}), C('imipeneme',{note:'Selon espèce (N. otitidiscaviarum R).'}), C('amika',{note:'Toujours en association.', assocOnly:true}), C('ceftriax',{note:'Si S (N. farcinica souvent R).'}), C('moxi',{note:'Relais oral selon CMI.'}) ],
+ moule: ctx => [ C('vorico',{note:'1re intention (Scedosporium ; Fusarium) — STP ; + terbinafine si Lomentospora prolificans.'}), C('amphoL',{note:'Fusarium : alternative/association initiale.'}), C('isavu',{note:'Selon CMI.'}), C('posa',{note:'Selon CMI.'}) ],
  hsv: ctx => [ C('aciclo'), C('foscarnet',{note:'Si résistance.'}) ], vzv: ctx => [ C('aciclo') ],
  cmv: ctx => [ C('ganci'), C('foscarnet',{note:'Résistance UL97 / myélotoxicité.'}) ],
  flu: ctx => [ C('oselta') ], covid: ctx => [ C('remdesivir',{note:'Patient sous O₂ non ventilé.'}) ],
@@ -231,6 +233,8 @@ const GRP_RULE = g => (['eb1','eb2','eb3'].includes(g)?'eb':g);
 function duration(site, germ, ctx){
  const g=germ.grp, id=germ.id;
  const fung = g.startsWith('cand');
+ if(g==='nocardia') return '≈ 6 mois (≥ 12 mois si atteinte cérébrale, disséminée ou immunodépression persistante)';
+ if(g==='moule') return 'Prolongée (semaines à mois) jusqu\'à résolution et restauration immunitaire';
  switch(siteCompat(site)==='snc' && site!=='abces' ? 'snc' : site){
   case 'bact': if(id==='saureus') return '≥ 14 j après la 1re hémoculture négative si non compliquée ; 4–6 sem si compliquée'; if(id==='scn') return '3–7 j (après retrait du matériel)'; if(fung) return '14 j après la 1re hémoculture négative'; if(g==='pseudo'||g==='acineto') return '7–14 j (7 j si source contrôlée et évolution rapide)'; return '7 j (bactériémie non compliquée, source contrôlée)';
   case 'pulm': if(g==='atyp') return 'Légionellose 8–14 j (21 j si immunodéprimé)'; if(g==='pneumo'||g==='hinf'||g==='strepto') return '5–7 j'; if(g==='asp') return '≥ 6–12 sem'; if(g==='pcp') return '21 j'; if(g==='flu') return '5 j'; return '7 j (PAVM — SFAR/SRLF 2017), y compris BGN non fermentants si évolution favorable';
