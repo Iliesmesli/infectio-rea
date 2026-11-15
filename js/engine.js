@@ -91,7 +91,7 @@ const C = (d,o={})=>Object.assign({d:Array.isArray(d)?d:[d]},o);
 const RULES = {
  staph: ctx => ctx.ph.mr ? [
    C('vanco',{note:'Référence pour SARM/SCN méti-R (Css 20–25 mg/L). Toxicité rénale : éviter l\'association pip-tazo/aminosides.'}),
-   C('dapto',{note:'Bactériémie/endocardite (10–12 mg/kg) ; JAMAIS pour une pneumonie.'}),
+   C('dapto',{note:'Bactériémie 8–10 mg/kg, endocardite/os 10–12 mg/kg (RCP : 6) ; JAMAIS pour une pneumonie.'}),
    C('linez',{note:'Pneumonie à SARM et SNC (diffusion LCS ≈ 70 %) ; bactériostatique : prudence en bactériémie isolée.'}),
    C('teico',{note:'Alternative à la vancomycine (moins néphrotoxique) — doses de charge, STP.'}),
    C('ceftaroline',{note:'Alternative/association (bactériémie réfractaire, pneumonie).'}),
@@ -319,7 +319,14 @@ function calc(drugId, regKey, p){
   case 'fluco': return `DC ${Math.min(1600,r50(12*w))} mg puis ${Math.min(800,r50(6*w))} mg/j${L}`;
   case 'vorico': return `IV : ${r10(6*w)} mg q12h × 2 puis ${r10(4*w)} mg q12h${L}`;
   case 'amphoL': return `${r10(3*w)} mg/j (3 mg/kg) — ${r10(5*w)} mg/j (5 mg/kg)${L}`;
-  case 'dapto': return `${r50(8*w)}–${r50(12*w)} mg q24h${L}`;
+  case 'dapto': {
+    const S=(window.__SITES||[]).map(siteCompat), G=window.__GERM||'';
+    const hi = S.includes('endo') || S.includes('os') || G==='efaecium' || G==='efaecalis';
+    const bac = S.includes('bact') || S.includes('kt');
+    const arc = band(p)==='arc';
+    if(!S.length) return `IcPTM ${r50(6*w)} mg · bactériémie ${r50(8*w)}–${r50(10*w)} mg · endocardite/os/ERV ${r50(10*w)}–${r50(12*w)} mg, q24h${L}`;
+    const [a,b,lab] = hi? [10,12,'endocardite / os / matériel / entérocoque'] : bac? (arc?[10,12,'bactériémie + hyperclairance']:[8,10,'bactériémie']) : (arc?[8,10,'hyperclairance']:[6,6,'IcPTM']);
+    return `${a===b? r50(a*w) : r50(a*w)+'–'+r50(b*w)} mg q24h (${a===b?a:a+'–'+b} mg/kg, ${lab})${L}${arc?' — STP conseillé':''}`; }
   case 'teico': return `${r50(12*w)} mg q12h × 3–5 puis ${r50(12*w)} mg q24h${L}`;
   case 'ganci': return `${r10(5*w)} mg q12h (induction)${L}`;
   case '5fc': return `${r50(25*w)} mg q6h${L}`;
@@ -383,6 +390,7 @@ const SITE_PREF = {
  dapto:{endo:-40, bact:-40, kt:-25, snc:40, abces:40}
 };
 function evaluate(iso, sites, pat, opts={}){
+ window.__SITES = sites; window.__GERM = iso && iso.germ;
  const germ = G[iso.germ]; if(!germ) return {error:'Germe non reconnu'};
  const ph = iso.ph||{};
  if(germ.grp==='staph' && ph.mr==null){ const o=(iso.ast||{}).cloxa; ph.mr = (o==='R'); }

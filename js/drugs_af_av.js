@@ -246,7 +246,7 @@ window.OBESE = {
  tobra:{wt:'ABW', t:'Poids ajusté (PI + 0,4 × excès) ; pic et Cmin.'},
  vanco:{wt:'TBW', t:'Dose de charge sur le POIDS TOTAL (20–25 mg/kg, plafond ≈ 3 g) ; entretien guidé par la ClCr et la STP (débuter ≤ 4–4,5 g/j), cible AUC 400–600 (Rybak 2020).'},
  teico:{wt:'TBW', t:'Charge sur le poids total ; STP (Cmin 20–30 mg/L).'},
- dapto:{wt:'TBW', t:'Poids total (certains utilisent le poids ajusté si IMC ≥ 40 pour limiter la toxicité musculaire) ; CPK hebdomadaires.'},
+ dapto:{wt:'ABW', t:'Poids ajusté = poids idéal + 0,4 × (poids total − poids idéal) : la clairance augmente moins vite que le poids → surexposition et toxicité musculaire si mg/kg de poids total (abxbmi/Goutelle ; le RCP reste au poids total). CPK hebdomadaires.'},
  linez:{wt:'fixed', t:'600 mg q12h ; sous-exposition possible si IMC ≥ 40 → 600 mg q8h guidé par STP.'},
  cipro:{wt:'fixed', t:'Forte posologie (400 mg q8h IV, 750 mg q12h PO) si infection grave.'},
  levo:{wt:'fixed', t:'500 mg q12h si infection grave (exposition dépendante de la ClCr).'},

@@ -118,7 +118,7 @@ function doseBlock(d, regKey, extras=true){
  const ob = window.OBESE[d.id]; const W=weights(P);
  const reg = (d.dose && (d.dose[regKey]||d.dose.std)) || '';
  const calcLine = window.calcDose(d.id, regKey, P);
- let html = `<div class="dose"><div><span class="tag ${regKey==='std'&&d.dose.high?'tstd':''}">${regKey==='snc'?'Dose méningée / SNC':regKey==='high'?'Posologie de départ en réanimation (forte posologie)':(d.dose.high?'Posologie standard — désescalade possible (souche S, patient stabilisé, hors SNC)':'Posologie')}</span> ${esc(reg)}</div>`;
+ let html = `<div class="dose"><div><span class="tag ${regKey==='std'&&d.dose.high?'tstd':''}">${regKey==='snc'?'Dose méningée / SNC':regKey==='high'?'Posologie de départ en réanimation (forte posologie)':(d.dose.high?'Posologie standard — désescalade possible (souche S, patient stabilisé, hors SNC)':'Posologie')}</span> ${reg.includes('<br>')? fmtText(reg) : esc(reg)}</div>`;
  if(calcLine) html += `<div class="calc">🧮 ${esc(calcLine)}</div>`;
  if(b && d.renal && d.renal[b]) html += `<div><span class="tag t2">${esc(BAND_L[b])}</span> ${esc(d.renal[b])}</div>`;
  else if(!b) html += `<div class="muted">Renseigner la fonction rénale / l'EER dans l'onglet Patient pour l'adaptation.</div>`;
@@ -141,6 +141,7 @@ function viewMolecules(){
  </section>`;
 }
 function viewMolecule(id){
+ window.__SITES=[]; window.__GERM="";
  const d=D[id]; if(!d) return '<p>Introuvable.</p>';
  const regs = ['high','snc','std'].filter(k=>(d.dose||{})[k]);
  const siteTxt = d.site? Object.entries(d.site).map(([k,v])=>`<span class="pill ${v}">${esc((window.SITES.find(s=>s.id===k)||{l:k}).l)}</span>`).join(' '):'';
@@ -178,7 +179,7 @@ let germQ='';
 function viewGerms(){
  const list = window.GERMS.filter(g=>!germQ || (g.name+' '+g.cat+' '+(g.alias||[]).join(' ')).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').includes(germQ));
  const groups={}; list.forEach(g=>{(groups[g.cat]=groups[g.cat]||[]).push(g);});
- return `<section class="card"><div class="toolbar"><input type="search" id="germq" placeholder="Filtrer les germes…" value="${esc(germQ)}"></div>
+ return `<section class="card"><div class="toolbar"><input type="search" id="germq" placeholder="Filtrer les germes…" value="${esc(germQ)}"><a class="btn" href="#pays">🌍 Risque BMR par pays</a></div>
  ${Object.entries(groups).map(([c,gs])=>`<h3 class="grp">${esc(c)}</h3><div class="tiles">${gs.map(g=>`<a class="tile" href="#g-${g.id}"><b>${esc(g.name)}</b><span>${esc(g.epi).slice(0,100)}…</span></a>`).join('')}</div>`).join('')}</section>`;
 }
 function viewGerm(id){
@@ -454,7 +455,7 @@ function viewRefs(){
 }
 
 /* ---------- ANTIBIOGRAMME ---------- */
-const APP_VERSION='1.10';
+const APP_VERSION='1.11';
 let SAMPLE = null, sampleImages=false;
 const PHOTO = {msg:'', thumbs:[]}; let PHOTO_TARGET='abg';
 function photoMsg(h){ PHOTO.msg=h; const m=document.getElementById('photomsg'); if(m) m.innerHTML=h; }
@@ -657,11 +658,79 @@ async function readPhotosLocal(files){
  }catch(e){ photoMsg('Échec de la lecture sur l\'appareil ('+esc(String((e&&e.message)||e))+'). Saisie manuelle ci-dessous.'); }
 }
 
+
+/* ---------- RISQUE BMR PAR PAYS ---------- */
+let PAYSX = 'hosp';
+const LVCLS = ['muted','lv1','lv2','lv3','lv4'];
+const lvBadge = (n) => `<span class="lvb ${LVCLS[n||0]}">${esc(window.PAYS.LV[n||0])}</span>`;
+function viewPaysList(){
+ const P=window.PAYS; const q=(window.__paysQ||'');
+ const list = q? P.find(q) : P.list;
+ return `<section class="card"><h2>🌍 Risque de BMR / BHRe selon le pays</h2>
+ <div class="note">Tapez un pays (ici ou dans la barre de recherche générale). Niveaux <b>indicatifs</b> pour l'analyse de risque à l'admission ; le HCSP (2019) ne publie volontairement pas de liste : <b>toute hospitalisation ≥ 24 h à l'étranger dans les 12 derniers mois impose le dépistage BHRe, quel que soit le pays</b>.</div>
+ <div class="toolbar"><input type="search" id="paysq" placeholder="Pays (ex. Maroc, Inde, Grèce…)" value="${esc(q)}"></div>
+ <div class="tiles" id="paystiles">${paysTiles(list)}</div>
+ ${refChips(['hcsp_bhre19','ecdc_who_amr23','ecdc_atlas','who_glass','spf_epc16','spf_bhre22','ruppe15','ecdc_cauris'])}</section>`;
+}
+function paysTiles(list){ const P=window.PAYS; return list.map(c=>`<a class="tile" href="#c-${c.id}"><b>${esc(c.name)}</b><span>EPC ${esc(P.LV[c.c])} · BLSE ${esc(P.LV[c.b])} · A. baumannii ${esc(P.LV[c.a])}</span></a>`).join('')||'<span class="muted">Aucun pays trouvé.</span>'; }
+function paysCAT(c){
+ const x=PAYSX, dom=!!c.dom, hosp = x==='hosp'||x==='rapat';
+ const H=[], T=[];
+ if(dom){
+  H.push(`Territoire français : la règle « hospitalisation à l'étranger » ne s'applique pas ; suivre la politique de dépistage de l'établissement / EOH${c.b>=3?' (prévalence de BLSE élevée : dépistage BMR souvent pratiqué)':''}.`);
+ } else if(hosp){
+  H.push(`<b>Dépistage BHRe recommandé, quel que soit le pays</b> (HCSP 2019) : écouvillon rectal (EPC + ERG), culture ± PCR selon le laboratoire.`);
+  H.push(`<b>Chambre individuelle + précautions complémentaires contact dès l'admission</b>, maintenues jusqu'aux résultats ; ${x==='rapat'?"rapatriement sanitaire / transfert direct : <b>précautions spécifiques BHRe d'emblée</b> (personnel dédié selon l'EOH)":"prévenir l'EOH"} — conduite à tenir après un dépistage négatif selon la procédure locale.`);
+  if(c.a>=3) H.push(`A. baumannii résistant aux carbapénèmes ${lvBadge(c.a)} : discuter avec l'EOH une recherche complémentaire (cutanée, gorge, prélèvement respiratoire si ventilé) et des précautions contact renforcées.`);
+  if(c.k>=2) H.push(`<i>Candida auris</i> circule dans ce pays : dépistage (aisselles + plis inguinaux) à discuter avec l'EOH pour tout patient transféré d'un hôpital de ce pays (ECDC).`);
+ } else {
+  H.push(`Séjour ou résidence sans hospitalisation : <b>pas de dépistage systématique</b> ; analyse de risque (HCSP 2019 : séjour < 3 mois) — pays, durée, antibiotiques reçus, soins ou diarrhée sur place.`);
+  H.push(c.c>=3 ? `Risque EPC ${lvBadge(c.c)} dans ce pays → <b>dépistage BHRe conseillé</b> (écouvillon rectal), surtout si antibiotiques, soins locaux ou séjour prolongé ; précautions contact jusqu'au résultat selon l'EOH.` : `Risque EPC ${lvBadge(c.c)} → dépistage selon l'EOH (non systématique).`);
+  if(c.b>=4) H.push(`Acquisition digestive de BLSE fréquente après simple voyage (environ la moitié des voyageurs en zone tropicale, ≈ 70 % au retour d'Asie ; portage le plus souvent < 3 mois — VOYAG-R) : en tenir compte en probabiliste dans les mois qui suivent.`);
+ }
+ if(c.b>=3) T.push(`BLSE ${lvBadge(c.b)} : sepsis grave/choc d'origine digestive, urinaire ou nosocomiale après séjour récent → couvrir les BLSE (carbapénème) en attendant le dépistage et les prélèvements.`);
+ if(c.c>=3 && (hosp || x==='resid')){
+  const ct=(c.ct||'').toUpperCase(), mbl=/NDM|VIM|IMP/.test(ct);
+  T.push(`EPC ${lvBadge(c.c)} (${esc(c.ct)}) : en cas de <b>choc septique après hospitalisation dans ce pays</b>, discuter avec l'infectiologue une couverture des EPC en attendant le dépistage (PCR rapide des carbapénémases) : OXA-48 → ceftazidime-avibactam ; KPC → ceftazidime-avibactam, méropénème-vaborbactam ou imipénème-relebactam ; métallo-β-lactamases (NDM, VIM, IMP) → ceftazidime-avibactam + aztréonam (ou aztréonam-avibactam), ou céfidérocol.${mbl?' <b>NDM/VIM fréquentes ici : seules les options « MBL » couvrent tous les mécanismes.</b>':''}`);
+ }
+ if(c.a>=4 && hosp) T.push(`A. baumannii résistant aux carbapénèmes ${lvBadge(c.a)} (ventilation, brûlures, blessés de guerre) : avis spécialisé — colistine, céfidérocol, sulbactam à forte dose (ou sulbactam-durlobactam si disponible). <a href="#g-abaum">→ fiche</a>`);
+ if(c.m>=3) T.push(`SARM ${lvBadge(c.m)} : infection grave à cocci Gram positif ou pneumonie nécrosante → linézolide (poumon) ou daptomycine/vancomycine (bactériémie). <a href="#g-saureus">→ fiche</a>`);
+ if(c.v>=3 && hosp) T.push(`ERG ${lvBadge(c.v)} : infection grave à entérocoque → linézolide ou daptomycine forte dose (10–12 mg/kg). <a href="#g-efaecium">→ fiche</a>`);
+ if(c.k>=2 && hosp) T.push(`<i>C. auris</i> : candidémie → échinocandine en 1re intention (souvent résistant au fluconazole). <a href="#g-cauris">→ fiche</a>`);
+ if(!T.length) T.push("Pas de modification de l'antibiothérapie probabiliste liée au pays : suivre l'écologie locale et les facteurs de risque individuels.");
+ T.push('Désescalade dès le résultat du dépistage et des prélèvements.');
+ return {H,T};
+}
+function viewPays(id){
+ const P=window.PAYS, c=P.byId(id); if(!c) return '<p>Pays introuvable.</p>';
+ const ov=P.overall(c), {H,T}=paysCAT(c);
+ const row=(l,n,extra)=>`<tr><td>${l}${extra?`<br><span class="muted">${extra}</span>`:''}</td><td>${lvBadge(n)}</td></tr>`;
+ const ul=a=>'<ul class="fl">'+a.map(x=>`<li>${x}</li>`).join('')+'</ul>';
+ return `<section class="card"><a href="#pays" class="muted">← Tous les pays</a>
+ <h2>🌍 ${esc(c.name)} ${lvBadge(ov)}</h2>
+ ${c.n?`<div class="dangerbox">${esc(c.n)}</div>`:''}${c.lim?'<div class="note">Données de surveillance limitées : niveaux estimés à partir de la région et des cas importés.</div>':''}
+ <table><tr><th>Bactérie</th><th>Niveau</th></tr>
+ ${row('Entérobactéries productrices de carbapénémases (EPC)',c.c,esc(c.ct||''))}
+ ${row('Entérobactéries BLSE / C3G-R',c.b)}
+ ${row('<i>A. baumannii</i> résistant aux carbapénèmes',c.a)}
+ ${row('SARM',c.m)}
+ ${row('<i>E. faecium</i> résistant aux glycopeptides (ERG)',c.v)}
+ ${row('<i>Candida auris</i>',c.k,['','cas sporadiques','épidémies','transmission étendue'][c.k||0])}
+ </table>
+ <h3>Situation du patient</h3>
+ <div class="seg wrap">${[['hosp','Hospitalisé ≥ 24 h (12 mois)'],['rapat','Rapatriement / transfert direct'],['sejour','Séjour < 3 mois sans hospitalisation'],['resid','Réside dans ce pays']].map(([k,l])=>`<button class="${PAYSX===k?'on':''}" data-paysx="${k}">${l}</button>`).join('')}</div>
+ <h3>Dépistage et hygiène</h3>${ul(H)}
+ <h3>Antibiothérapie probabiliste</h3>${ul(T)}
+ <div class="note">Niveaux indicatifs (ordre de grandeur des souches invasives ; données ECDC/OMS 2023–2024, OMS GLASS, Santé publique France, littérature) : à confronter à l'avis de l'EOH et de l'infectiologue. <a href="#e-depistage">→ Dépistage BMR/BHRe</a></div>
+ ${refChips(['hcsp_bhre19','ecdc_who_amr23','ecdc_atlas','who_glass','spf_epc16','ruppe15','ecdc_cauris'])}</section>`;
+}
+
 /* ---------- recherche globale ---------- */
 function searchAll(q){
  q = q.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,''); if(q.length<2) return '';
  const m = s => (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').includes(q);
  const r=[];
+ if(window.PAYS) window.PAYS.find(q).slice(0,4).forEach(c=>r.push(`<a href="#c-${c.id}">🌍 <b>${esc(c.name)}</b> — risque BMR/BHRe : ${esc(window.PAYS.LV[window.PAYS.overall(c)])}${c.c>=3?' (EPC '+esc(c.ct)+')':''}</a>`));
  window.DRUGS.forEach(d=>{ if(m(d.name)||m(d.cls)||(d.alias||[]).some(m)) r.push(`<a href="#m-${d.id}">💊 ${esc(d.name)}</a>`); });
  window.GERMS.forEach(g=>{ if(m(g.name)||(g.alias||[]).some(m)) r.push(`<a href="#g-${g.id}">🦠 ${esc(g.name)}</a>`); });
  window.PATHO.forEach(p=>{ if(m(p.name)||m(p.cat)) r.push(`<a href="#p-${p.id}">🩺 ${esc(p.name)}</a>`); });
@@ -681,6 +750,8 @@ function render(){
  else if(r.startsWith('g-')){ html=viewGerm(r.slice(2)); tab='germes'; }
  else if(r.startsWith('p-')){ html=viewPatho(r.slice(2)); tab='pathologies'; }
  else if(r.startsWith('e-')){ html=viewExam(r.slice(2)); tab='examens'; }
+ else if(r.startsWith('c-')){ html=viewPays(r.slice(2)); tab='germes'; }
+ else if(r==='pays'){ html=viewPaysList(); tab='germes'; }
  else html = ({antibiogramme:viewABG, molecules:viewMolecules, pkpd:viewPKPD, germes:viewGerms, pathologies:viewPathos, examens:viewExams, antibioprophylaxie:viewABP, bio:viewBIO, patient:viewPatient, references:viewRefs}[r]||viewABG)();
  $$('#tabs a').forEach(a=>a.classList.toggle('on', a.getAttribute('href')==='#'+tab));
  main.innerHTML = html;
@@ -692,6 +763,8 @@ function render(){
  annotate(main);
  bindPatient(main); bindABG(main); bindABP(main); bindBIO(main);
  $$('[data-molt]',main).forEach(b=>b.onclick=()=>{ molFilter.type=b.dataset.molt; render(); });
+ $$('[data-paysx]',main).forEach(b=>b.onclick=()=>{ PAYSX=b.dataset.paysx; render(); });
+ { const pq=$('#paysq'); if(pq) pq.oninput=()=>{ window.__paysQ=pq.value; const t=$('#paystiles'); if(t) t.innerHTML=paysTiles(pq.value? window.PAYS.find(pq.value) : window.PAYS.list); }; }
  const mq=$('#molq',main); if(mq){ mq.oninput=()=>{ molFilter.q=mq.value.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,''); const pos=mq.selectionStart; render(); const n=$('#molq'); n.focus(); n.setSelectionRange(pos,pos); }; }
  const gq=$('#germq',main); if(gq){ gq.oninput=()=>{ germQ=gq.value.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,''); const pos=gq.selectionStart; render(); const n=$('#germq'); n.focus(); n.setSelectionRange(pos,pos); }; }
  $$('[data-newiso]',main).forEach(b=>b.onclick=()=>{ AB.isolates.push({germ:b.dataset.newiso, ast:{}, ph:{}}); saveAB(); location.hash='#antibiogramme'; });

@@ -101,7 +101,7 @@ window.EXAMS = [
  fp:'Portage asymptomatique (PCR+, toxines −).', fn:'Toxines EIA seules.',
  usage:'Ne tester que les selles non moulées ; pas de test de guérison.', refs:['escmid_cdi21']},
 {id:'depistage', cat:'Microbiologie', name:'Dépistage des BMR et BHRe : indications, fréquence, zones d\'endémie',
- princ:'Écouvillonnage <b>rectal</b> (ou selles) sur milieux sélectifs ± PCR (EBLSE, EPC, ERV) ; écouvillonnage <b>nasal</b> (± périnée, gorge, plaies) pour le SARM ; culture rapide ou PCR (résultat 1–2 h pour SARM et carbapénèmases).',
+ princ:'<a href="#pays">🌍 Risque BMR/BHRe et conduite à tenir par pays →</a><br>Écouvillonnage <b>rectal</b> (ou selles) sur milieux sélectifs ± PCR (EBLSE, EPC, ERV) ; écouvillonnage <b>nasal</b> (± périnée, gorge, plaies) pour le SARM ; culture rapide ou PCR (résultat 1–2 h pour SARM et carbapénèmases).',
  perf:'Un dépistage rectal BLSE négatif datant de < 1 semaine a une forte VPN d\'infection à EBLSE en réanimation (HAS 2019). VPN du dépistage nasal SARM pour la pneumonie à SARM > 95 %. VPP faible (colonisation ≠ infection : ≈ 10–25 % des porteurs de BLSE s\'infectent avec leur souche en réanimation).<br><br>'+
  '<b>1. BHRe (EPC, ERV) — HCSP 2019</b><br>'+
  '• <b>Dépistage à l\'admission</b> de tout patient <b>hospitalisé ≥ 24 h à l\'étranger dans les 12 derniers mois</b> (quel que soit le pays), y compris rapatriement sanitaire ; patients transférés d\'un service en situation épidémique BHRe ; anciens porteurs connus (à re-dépister à chaque admission). Le HCSP recommande aussi d\'évaluer le risque (dépistage selon analyse locale) chez les patients ayant <b>séjourné à l\'étranger sans hospitalisation</b> dans les 3 mois (surtout zones de forte endémie, antibiothérapie, dialyse ou soins sur place).<br>'+
