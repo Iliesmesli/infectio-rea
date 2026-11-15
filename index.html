@@ -136,6 +136,19 @@ footer{max-width:1150px;margin:0 auto 30px;padding:0 16px;color:var(--muted);fon
 .brand-footer{display:flex;align-items:center;justify-content:center;gap:18px;max-width:1150px;margin:34px auto 14px;padding:18px 16px 0;border-top:1px solid var(--line)}
 .brand-badge{display:flex;align-items:center;justify-content:center;width:112px;height:112px;border-radius:22px;background:var(--card);border:1px solid var(--line);flex-shrink:0;overflow:hidden}
 .brand-badge img{max-width:84px;max-height:84px;object-fit:contain;border-radius:12px}
+/* mobile : défilement horizontal des segments et des tableaux */
+.seg{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
+.seg button{flex-shrink:0;white-space:nowrap}
+.tblwrap{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;margin:6px 0}
+.tbl td,.tbl th{overflow-wrap:break-word}
+dl.fiche dd,dl.fiche dt{min-width:0}
+@media (max-width:640px){ .tbl tr:first-child th{width:auto} .tbl{font-size:13px} .tbl th,.tbl td{padding:5px 6px}
+ .seg{display:flex;flex-wrap:wrap;overflow:visible} .seg button{flex:1 1 auto;} .seg:not(.sm) button{flex:1 1 40%;padding:7px 9px;border-bottom:1px solid var(--line);margin-bottom:-1px}
+ table.stack, table.stack tbody{display:block;width:100%} table.stack tr:first-child{display:none}
+ table.stack tr{display:block;border:1px solid var(--line);border-radius:10px;padding:6px 10px;margin:8px 0}
+ table.stack td{display:block;border:0;padding:3px 0;white-space:normal!important}
+ table.stack td:first-child{font-weight:700;color:var(--pri);padding-top:2px}
+ table.stack td[data-label]::before{content:attr(data-label) " : ";font-weight:600;color:var(--muted)} }
 </style>
 </head>
 <body>

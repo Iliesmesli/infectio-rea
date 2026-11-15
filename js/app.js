@@ -457,6 +457,11 @@ function render(){
  else html = ({antibiogramme:viewABG, molecules:viewMolecules, pkpd:viewPKPD, germes:viewGerms, pathologies:viewPathos, examens:viewExams, patient:viewPatient, references:viewRefs}[r]||viewABG)();
  $$('#tabs a').forEach(a=>a.classList.toggle('on', a.getAttribute('href')==='#'+tab));
  main.innerHTML = html;
+ main.querySelectorAll('table').forEach(t=>{
+   if(!t.parentElement.classList.contains('tblwrap')){ const w=document.createElement('div'); w.className='tblwrap'; t.parentNode.insertBefore(w,t); w.appendChild(t); }
+   const rows=[...t.rows]; if(!rows.length) return; const head=[...rows[0].cells];
+   if(head.length>=3 && head.every(c=>c.tagName==='TH')){ t.classList.add('stack'); rows.slice(1).forEach(r=>[...r.cells].forEach((c,i)=>{ if(i>0 && head[i]) c.setAttribute('data-label', head[i].textContent.trim()); })); }
+ });
  annotate(main);
  bindPatient(main); bindABG(main);
  $$('[data-molt]',main).forEach(b=>b.onclick=()=>{ molFilter.type=b.dataset.molt; render(); });
