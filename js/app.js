@@ -233,6 +233,71 @@ document.addEventListener('click', e=>{
 });
 
 
+
+/* ---------- RÉSULTATS BIOLOGIQUES (lecture photo + interprétation par règles) ---------- */
+let BIOS = store.get('bio', {type:'lcs', v:{}});
+const saveBIO = ()=>store.set('bio', BIOS);
+const BIOPH = {msg:'', thumbs:[]};
+function viewBIO(){
+ const B=window.BIO, T=B.T[BIOS.type]||B.T.lcs;
+ const chips = Object.entries(B.T).map(([k,t])=>`<button type="button" class="chip ${k===BIOS.type?'on':''}" data-biot="${k}">${t.ico} ${esc(t.name)}</button>`).join('');
+ const field = f => f.h==='choix' ? `<label class="span2"><span>${esc(f.l)}</span><select data-biov="${f.id}">${(B.CTX[BIOS.type]||[]).map(([k,l])=>`<option value="${k}" ${BIOS.v[f.id]===k?'selected':''}>${esc(l)}</option>`).join('')}</select></label>`
+   : `<label><span>${esc(f.l)}${f.u?` <small class="muted">(${esc(f.u)})</small>`:''}</span><input type="number" step="any" inputmode="decimal" data-biov="${f.id}" value="${esc(BIOS.v[f.id]??'')}"></label>`;
+ const res = B.interp(BIOS.type, BIOS.v);
+ const lv = {danger:'dangerbox', warn:'warnbox', ok:'okbox', info:'note'};
+ return `<section class="card"><h2>Lecture de résultats biologiques</h2>
+ <p class="muted small">Photographiez un compte rendu (LCS, liquide pleural, ascite, articulaire, NFS/biochimie, ECBU, prélèvement respiratoire) ou saisissez les valeurs : Claude se contente de <b>transcrire</b> les valeurs (à vérifier), l'<b>interprétation</b> est faite par des règles fixes issues des recommandations, avec renvoi vers la fiche dédiée.</p>
+ <div class="photo">
+   <button type="button" class="btn primary" data-photo="cam" data-target="bio">📷 Prendre une photo</button>
+   <button type="button" class="btn" data-photo="lib" data-target="bio">🖼 Photothèque / fichiers</button>
+   <span class="warn small">🔒 Cadrer uniquement les résultats : aucun nom, IPP ni date de naissance.</span>
+   <div id="biothumbs" class="thumbs">${BIOPH.thumbs.map(u=>`<img src="${u}" alt="photo">`).join('')}</div>
+   <span id="biomsg" class="muted">${BIOPH.msg||''}</span>
+ </div>
+ <h3>1. Type de prélèvement</h3><div class="chips">${chips}</div>
+ <h3>2. Interprétation</h3>
+ ${res.length? res.map(r=>`<div class="${lv[r.lvl]||'note'}">${r.txt}${r.link?` <a href="${r.link}">→ fiche dédiée</a>`:''}</div>`).join('') : '<p class="muted">Renseignez des valeurs (photo ou saisie ci-dessous) pour obtenir une interprétation.</p>'}
+ <h3>3. Valeurs <small class="muted">(vérifier ; laisser vide si non disponible)</small></h3>
+ <div class="biogrid">${T.fields.map(field).join('')}</div>
+ <p><button type="button" class="btn ghost" id="bioclear">Effacer les valeurs</button></p>
+ <p class="muted small">Aide à l'interprétation : ne remplace pas l'analyse clinique ni l'avis du biologiste.</p>
+ <h3>Références</h3>${refList(T.refs)}</section>`;
+}
+function bindBIO(root){
+ $$('[data-biot]',root).forEach(b=>b.onclick=()=>{ BIOS={type:b.dataset.biot, v:{}}; saveBIO(); render(); });
+ $$('[data-biov]',root).forEach(i=>{ const ev = i.tagName==='SELECT'?'onchange':'onchange'; i[ev]=()=>{ BIOS.v[i.dataset.biov]= i.value; saveBIO(); keepScroll(render); }; });
+ const c=$('#bioclear',root); if(c) c.onclick=()=>{ BIOS.v={}; BIOPH.msg=''; saveBIO(); render(); };
+ $$('[data-biocreat]',root).forEach(l=>l.onclick=e=>{ e.preventDefault(); P.creat=+l.dataset.biocreat; saveP(); location.hash='#patient'; });
+}
+function bioMsg(h){ BIOPH.msg=h; const m=document.getElementById('biomsg'); if(m) m.innerHTML=h; }
+async function readBio(files){
+ if(!files.length) return;
+ BIOPH.thumbs.forEach(u=>{ try{URL.revokeObjectURL(u);}catch(e){} });
+ BIOPH.thumbs = files.map(f=>{ try{ return URL.createObjectURL(f); }catch(e){ return ''; } }).filter(Boolean);
+ const th=document.getElementById('biothumbs'); if(th) th.innerHTML=BIOPH.thumbs.map(u=>`<img src="${u}" alt="photo">`).join('');
+ if(!SAMPLE && window.claude && window.claude.use){ try{ SAMPLE = await window.claude.use('sample'); }catch(e){} }
+ if(!SAMPLE){ bioMsg('📷 Photo reçue, mais la lecture automatique n\'est pas disponible dans cette version (ouvrir l\'application dans Claude). Saisir les valeurs ci-dessous.'); return; }
+ bioMsg('<span class="spin"></span> Lecture par Claude… (ne pas quitter la page)');
+ try{
+  const B=window.BIO; const spec = Object.entries(B.T).map(([k,t])=>`- ${k} (${t.name}) : ${t.fields.filter(f=>f.h!=='choix').map(f=>`${f.id} = ${f.l}${f.u?' en '+f.u:''}`).join(' ; ')}`).join('\n');
+  const prompt = `Tu transcris un compte rendu de biologie médicale française photographié. Ne fais AUCUNE interprétation clinique.
+Identifie le type de prélèvement parmi : lcs, pleural, ascite, artic, nfs, ecbu, resp. Puis renvoie UNIQUEMENT un objet JSON :
+{"type":"...","ctx":"comm|noso|nosonde|sonde|at|lba|pdp|null","values":{"<id>":nombre,...},"notes":"remarques éventuelles"}
+Champs attendus par type (identifiant = libellé, unité cible) :
+${spec}
+Règles : convertis dans l'unité cible (glucose g/L × 5,55 = mmol/L ; mg/dL × 0,0555 = mmol/L ; leucocytes en /mm³ = /µL ; G/L = 10⁹/L ; T/L = 10¹²/L ; UFC/mL en nombre, ex. 10^5 → 100000 ; pourcentages en nombre). Pour les champs oui/non, mets 1 si présent, sinon omets. N'invente aucune valeur absente ; omets les champs non trouvés. Pour lcs, ctx = "noso" si DVE/post-opératoire mentionné, sinon "comm". Pour ecbu, ctx = "sonde" si sonde mentionnée. Pour resp, ctx = at, lba ou pdp.`;
+  const blobs = await Promise.all(files.map(shrink));
+  let out; try{ out = await SAMPLE.json(prompt, {images:blobs, modelTier:'complex'}); }
+  catch(e){ const r = await SAMPLE(prompt, {images:blobs, modelTier:'complex'}); const t=(r&&r.text)||''; out = JSON.parse(t.slice(t.indexOf('{'), t.lastIndexOf('}')+1)); }
+  if(!out || !B.T[out.type]) { bioMsg('Type de prélèvement non reconnu : choisissez-le et saisissez les valeurs.'); return; }
+  const v={}; Object.entries(out.values||{}).forEach(([k,x])=>{ if(B.T[out.type].fields.some(f=>f.id===k) && x!=null && !isNaN(+x)) v[k]=String(+x); });
+  if(out.ctx && (B.CTX[out.type]||[]).some(([k])=>k===out.ctx)) v.ctx=out.ctx;
+  BIOS={type:out.type, v}; saveBIO();
+  BIOPH.msg = `✅ ${Object.keys(v).length} valeur(s) transcrite(s) (${esc(B.T[out.type].name)}) — <b>vérifiez chaque valeur</b>.${out.notes?' <span class="muted">'+esc(out.notes)+'</span>':''}`;
+  render();
+ }catch(e){ bioMsg(e && e.code==='not_granted' ? 'Autorisation refusée : saisie manuelle.' : 'Échec de la lecture : réessayer ou saisir manuellement ('+esc(String((e&&e.message)||e))+').'); }
+}
+
 /* ---------- ANTIBIOPROPHYLAXIE ---------- */
 const norm = s => String(s||'').replace(/<[^>]+>/g,'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
 function viewABP(){
@@ -373,8 +438,9 @@ function viewRefs(){
 }
 
 /* ---------- ANTIBIOGRAMME ---------- */
+const APP_VERSION='1.8';
 let SAMPLE = null, sampleImages=false;
-const PHOTO = {msg:'', thumbs:[]};
+const PHOTO = {msg:'', thumbs:[]}; let PHOTO_TARGET='abg';
 function photoMsg(h){ PHOTO.msg=h; const m=document.getElementById('photomsg'); if(m) m.innerHTML=h; }
 function germOptions(sel){
  const groups={}; window.GERMS.forEach(g=>{(groups[g.cat]=groups[g.cat]||[]).push(g);});
@@ -458,10 +524,17 @@ function renderResults(){
  });
  const comb = window.combineIsolates(res.filter(Boolean), AB.sites);
  if(comb){
-  html += `<div class="isores comb"><h4>Infection pluri-microbienne — couverture de tous les isolats</h4>`;
-  if(comb.common.length) html += '<ol>'+comb.common.slice(0,4).map(c=>`<li><b>${esc(c.k.split('+').map(x=>D[x].name).join(' + '))}</b> — active sur tous les isolats</li>`).join('')+'</ol>';
-  else html += `<p>Aucune molécule unique ne couvre tous les isolats : associer les 1res options — <b>${esc(comb.tops.map(o=>o.c.d.map(x=>D[x].name).join(' + ')).filter((v,i,a)=>a.indexOf(v)===i).join(' ⊕ '))}</b> (vérifier redondances et interactions).</p>`;
-  html += '</div>';
+  let box = `<div class="isores comb"><h4>🎯 Infection pluri-microbienne — schéma couvrant tous les isolats (à privilégier)</h4>`;
+  const best = comb.common.filter(c=>!c.salv);
+  if(best.length){
+   const c0=best[0], ids=c0.k.split('+');
+   box += `<div class="okbox"><b>${esc(ids.map(x=>D[x].name).join(' + '))}</b> — ${c0.nd===1?'<b>une seule molécule</b> active sur ':'active sur '}tous les isolats (${c0.opts.map((o,i)=>`isolat ${i+1} : ${o.st.map(s=>s.s==='E'?'attendu S':s.s).join('/')}`).join(' ; ')}).</div>`;
+   box += ids.map(x=>{ const d=D[x]; const worst = c0.opts.some(o=>(o.st.find(s=>s.id===x)||{}).s==='SFP')?'SFP':'S'; const rk=window.regimenFor(d, worst, AB.sites, (res.find(Boolean)||{}).germ?.grp, {grave:P.grave}); return `<div class="drugdose"><a href="#m-${x}"><b>${esc(d.name)}</b></a>${doseBlock(d, rk)}</div>`; }).join('');
+   if(best.length>1) box += `<p class="small">Autres schémas communs : ${best.slice(1,4).map(c=>esc(c.k.split('+').map(x=>D[x].name).join(' + '))).join(' ; ')}.</p>`;
+  } else {
+   box += `<p>Aucune molécule ne couvre efficacement tous les isolats : associer les 1res options — <b>${esc(comb.tops.map(o=>o.c.d.map(x=>D[x].name).join(' + ')).filter((v,i,a)=>a.indexOf(v)===i).join(' ⊕ '))}</b> (vérifier redondances et interactions).</p>`;
+  }
+  html = box + '</div>' + html;
  }
  return html;
 }
@@ -478,14 +551,25 @@ function bindABG(root){
 }
 function keepScroll(fn){ const y=window.scrollY; fn(); window.scrollTo(0,y); }
 
+/* ---------- mise à jour (écran d'accueil iPhone : cache agressif) ---------- */
+function hardReload(v){ const u=location.pathname+'?v='+(v||Date.now())+location.hash; location.replace(u); }
+function checkUpdate(){
+ if(location.protocol==='file:') { const f0=document.getElementById('forceupd'); if(f0) f0.onclick=e=>{e.preventDefault(); hardReload();}; return; }
+ const f=document.getElementById('forceupd'); if(f) f.onclick=e=>{ e.preventDefault(); hardReload(); };
+ try{ fetch('version.json?ts='+Date.now(), {cache:'no-store'}).then(r=>r.ok?r.json():null).then(j=>{
+   if(!j || !j.v || j.v===APP_VERSION) return;
+   const b=document.createElement('div'); b.id='updbar'; b.innerHTML=`<span>Nouvelle version ${j.v} disponible</span><button type="button">Mettre à jour</button>`;
+   b.querySelector('button').onclick=()=>hardReload(j.v); document.body.appendChild(b);
+ }).catch(()=>{}); }catch(e){}
+}
 /* ---------- lecture photo via Claude ---------- */
 function setupPhotoInputs(){
  // entrées <input type=file> permanentes, hors de la zone re-rendue : un re-rendu pendant que l'appareil photo est ouvert ne fait plus perdre la photo
  const mk=(id, cap, multi)=>{ let i=document.getElementById(id); if(i) return i; i=document.createElement('input'); i.type='file'; i.id=id; i.accept='image/*'; if(cap) i.setAttribute('capture','environment'); if(multi) i.multiple=true;
   i.style.cssText='position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0'; document.body.appendChild(i);
-  i.addEventListener('change', ()=>{ const f=[...(i.files||[])]; if(f.length) readPhotos(f); i.value=''; }); return i; };
+  i.addEventListener('change', ()=>{ const f=[...(i.files||[])]; if(f.length) (PHOTO_TARGET==='bio'?readBio:readPhotos)(f); i.value=''; }); return i; };
  const cam=mk('camIn',true,false), lib=mk('libIn',false,true);
- document.addEventListener('click', e=>{ const b=e.target.closest('[data-photo]'); if(!b) return; e.preventDefault(); (b.dataset.photo==='cam'?cam:lib).click(); });
+ document.addEventListener('click', e=>{ const b=e.target.closest('[data-photo]'); if(!b) return; e.preventDefault(); PHOTO_TARGET=b.dataset.target||'abg'; (b.dataset.photo==='cam'?cam:lib).click(); });
 }
 async function shrink(file){
  try{ const img = await createImageBitmap(file); const max=1800; const s=Math.min(1, max/Math.max(img.width,img.height));
@@ -547,7 +631,7 @@ function searchAll(q){
 }
 
 /* ---------- routage ---------- */
-const TABS = [['antibiogramme','Antibiogramme'],['molecules','Anti-infectieux'],['pkpd','PK/PD & STP'],['germes','Germes'],['pathologies','Pathologies'],['examens','Examens'],['antibioprophylaxie','Antibioprophylaxie'],['patient','Patient'],['references','Références']];
+const TABS = [['antibiogramme','Antibiogramme'],['molecules','Anti-infectieux'],['pkpd','PK/PD & STP'],['germes','Germes'],['pathologies','Pathologies'],['examens','Examens'],['bio','Résultats bio 📷'],['antibioprophylaxie','Antibioprophylaxie'],['patient','Patient'],['references','Références']];
 function route(){ return (location.hash||'#antibiogramme').slice(1); }
 function render(){
  const r = route(); const main=$('#main');
@@ -556,7 +640,7 @@ function render(){
  else if(r.startsWith('g-')){ html=viewGerm(r.slice(2)); tab='germes'; }
  else if(r.startsWith('p-')){ html=viewPatho(r.slice(2)); tab='pathologies'; }
  else if(r.startsWith('e-')){ html=viewExam(r.slice(2)); tab='examens'; }
- else html = ({antibiogramme:viewABG, molecules:viewMolecules, pkpd:viewPKPD, germes:viewGerms, pathologies:viewPathos, examens:viewExams, antibioprophylaxie:viewABP, patient:viewPatient, references:viewRefs}[r]||viewABG)();
+ else html = ({antibiogramme:viewABG, molecules:viewMolecules, pkpd:viewPKPD, germes:viewGerms, pathologies:viewPathos, examens:viewExams, antibioprophylaxie:viewABP, bio:viewBIO, patient:viewPatient, references:viewRefs}[r]||viewABG)();
  $$('#tabs a').forEach(a=>a.classList.toggle('on', a.getAttribute('href')==='#'+tab));
  main.innerHTML = html;
  main.querySelectorAll('table').forEach(t=>{
@@ -565,7 +649,7 @@ function render(){
    if(head.length>=3 && head.every(c=>c.tagName==='TH')){ t.classList.add('stack'); rows.slice(1).forEach(r=>[...r.cells].forEach((c,i)=>{ if(i>0 && head[i]) c.setAttribute('data-label', head[i].textContent.trim()); })); }
  });
  annotate(main);
- bindPatient(main); bindABG(main); bindABP(main);
+ bindPatient(main); bindABG(main); bindABP(main); bindBIO(main);
  $$('[data-molt]',main).forEach(b=>b.onclick=()=>{ molFilter.type=b.dataset.molt; render(); });
  const mq=$('#molq',main); if(mq){ mq.oninput=()=>{ molFilter.q=mq.value.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,''); const pos=mq.selectionStart; render(); const n=$('#molq'); n.focus(); n.setSelectionRange(pos,pos); }; }
  const gq=$('#germq',main); if(gq){ gq.oninput=()=>{ germQ=gq.value.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,''); const pos=gq.selectionStart; render(); const n=$('#germq'); n.focus(); n.setSelectionRange(pos,pos); }; }
@@ -584,6 +668,7 @@ function init(){
  window.addEventListener('hashchange', ()=>{ render(); window.scrollTo(0,0); });
  render();
  setupPhotoInputs();
+ checkUpdate();
  try{ if(window.claude && window.claude.use){ window.claude.use('sample').then(s=>{ SAMPLE=s; if(s && s.limits) s.limits().then(l=>{sampleImages=!!(l&&l.images);}).catch(()=>{}); if(route()==='antibiogramme') keepScroll(render); }).catch(()=>{}); } }catch(e){}
 }
 document.addEventListener('DOMContentLoaded', init);

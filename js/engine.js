@@ -106,7 +106,14 @@ const RULES = {
    C(['levo','rifam'],{note:'Relais oral sur matériel/os.'}),
    C('vanco',{note:'Uniquement si allergie grave aux β-lactamines (moins efficace sur SAMS).', allergy:true}),
    C('dapto',{note:'Allergie grave : bactériémie/endocardite (pas de pneumonie).', allergy:true}),
-   C('clinda',{note:'Relais oral peau/os (si S).'})
+   C('clinda',{note:'Relais oral peau/os (si S).'}),
+   C('amoxclav',{note:'Actif sur SAMS : intéressant pour couvrir une co-infection avec une seule molécule.', broad:true}),
+   C('ceftriax',{note:'Actif sur SAMS (forte dose) : couverture unique possible si co-infection (pneumocoque, H. influenzae, entérobactérie S).', broad:true}),
+   C('cefotax',{note:'Idem ceftriaxone.', broad:true}),
+   C('pipetazo',{note:'Actif sur SAMS : couverture unique si co-infection à BGN S.', broad:true}),
+   C('cefepime',{note:'Actif sur SAMS : couverture unique si co-infection à BGN S.', broad:true}),
+   C('ertapeneme',{note:'Actif sur SAMS : couverture unique si co-infection à entérobactérie BLSE.', broad:true}),
+   C('merope',{note:'Actif sur SAMS : uniquement si co-infection le justifiant.', broad:true})
  ],
  pneumo: ctx => [
    C('amox',{note:'Pneumonie : amoxicilline (forte dose) même si PSDP. SNC : seulement si CMI amox ≤ 0,5 mg/L (SPILF 2018).'}),
@@ -347,6 +354,7 @@ function astStatus(drugId, iso, germ){
  if(germ.grp==='staph'){
    if(ph.mr && BL.includes(drugId) && drugId!=='ceftaroline') return {s:'R', why:'méticillino-résistance (toutes β-lactamines sauf ceftaroline)'};
    if(!ph.mr && ['cefazoline','amoxclav'].includes(drugId) && !raw) return {s:'S', why:'déduit de la sensibilité à l\'oxacilline'};
+   if(!ph.mr && ((iso.ast||{}).cloxa==='S' || ph.mr===false) && ['cefotax','ceftriax','cefepime','pipetazo','ertapeneme','merope','imipeneme','ceftaroline'].includes(drugId) && !raw) return {s:'S', why:'déduit (SAMS : sensible aux β-lactamines stables vis-à-vis de la pénicillinase)'};
    if(!ph.mr && drugId==='cloxa' && !raw) return {s:'S', why:'oxacilline/céfoxitine S'};
  }
  if(['eb1','eb2','eb3'].includes(germ.grp)){
@@ -361,6 +369,19 @@ function astStatus(drugId, iso, germ){
 }
 window.astStatus = astStatus;
 
+const SITE_PREF = {
+ linez:{pulm:-35, snc:-25, abces:-25, bact:25, endo:45, kt:15, os:5},
+ vanco:{pulm:15},
+ teico:{pulm:20, snc:40, abces:40},
+ tigec:{bact:80, pulm:40, endo:80},
+ erava:{bact:80, pulm:60},
+ colistine:{pulm:20},
+ amika:{pulm:15, snc:30}, genta:{pulm:15, snc:30}, tobra:{pulm:15, snc:30},
+ temo:{pulm:25},
+ ertapeneme:{snc:40},
+ cotrimox:{pulm:10},
+ dapto:{endo:-5, bact:-5, snc:40, abces:40}
+};
 function evaluate(iso, sites, pat, opts={}){
  const germ = G[iso.germ]; if(!germ) return {error:'Germe non reconnu'};
  const ph = iso.ph||{};
@@ -396,6 +417,8 @@ function evaluate(iso, sites, pat, opts={}){
    if(c.pref && !sites.every(s=>c.pref.includes(s))) score += 40;
    if(c.grvPen && pat.grave) score += 120;
    if(c.top) score -= 200;
+   // préférences de site (diffusion, bactéricidie) : ex. linézolide préféré à la vancomycine dans la pneumonie à SARM
+   c.d.forEach(x=>{ const sp=SITE_PREF[x]; if(sp) sites.forEach(s=>{ const k=sp[s]!=null?s:siteCompat(s); if(sp[k]) score += sp[k]; }); });
    if(c.ecPen && germ.id==='ecloacae' && sites.includes('abdo')) score += 150;
    if(c.dtr && st.every(s=>s.s==='S'||s.s==='SFP') && out.some(o=>!o.c.dtr && !o.c.salvage)) score += 80;
    if(st.some(s=>s.s==='SFP')) score += 5;
@@ -420,9 +443,11 @@ window.evaluate = evaluate;
 function combine(results, sites){
  const valid = results.filter(r=>r && r.options && r.options.length);
  if(valid.length<2) return null;
- const singles = valid.map(r=>{ const m={}; r.options.forEach((o,i)=>{ const k=o.c.d.slice().sort().join('+'); if(m[k]==null) m[k]=i; }); return m; });
- const keys = Object.keys(singles[0]).filter(k=>singles.every(m=>m[k]!=null));
- const common = keys.map(k=>({k, score: singles.reduce((a,m)=>a+m[k],0)})).sort((a,b)=>a.score-b.score);
+ const maps = valid.map(r=>{ const m={}; r.options.forEach(o=>{ const k=o.c.d.slice().sort().join('+'); if(m[k]==null || o.score<m[k].score) m[k]=o; }); return m; });
+ const keys = Object.keys(maps[0]).filter(k=>maps.every(m=>m[k]));
+ const common = keys.map(k=>{ const opts=maps.map(m=>m[k]); const nd=k.split('+').length; const salv=opts.some(o=>o.c.salvage||o.c.assocOnly);
+   return {k, opts, nd, salv, score: opts.reduce((a,o)=>a+o.score,0)/opts.length + (nd-1)*40 + (salv?300:0)}; })
+  .sort((a,b)=>a.score-b.score);
  const tops = valid.map(r=>r.options[0]);
  return {common, tops};
 }
