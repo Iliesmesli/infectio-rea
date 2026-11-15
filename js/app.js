@@ -184,10 +184,80 @@ function viewGerms(){
 function viewGerm(id){
  const g=G[id]; if(!g) return '<p>Introuvable.</p>';
  return `<section class="card"><a class="back" href="#germes">← Germes</a><h2>${esc(g.name)} <small class="muted">${esc(g.cat)}</small></h2>
- <dl class="fiche"><dt>Épidémiologie</dt><dd>${g.epi}</dd><dt>Résistances naturelles</dt><dd>${g.nat}</dd><dt>Mécanismes de résistance acquise</dt><dd>${g.mech}</dd><dt>Traitement</dt><dd>${g.ttt}</dd><dt>À savoir</dt><dd>${g.tips}</dd>
- ${g.ast&&g.ast.length?`<dt>Molécules liées</dt><dd>${g.ast.map(a=>D[a]?`<a class="pill ok" href="#m-${a}">${esc(D[a].name)}</a>`:'').join(' ')}</dd>`:''}</dl>
+ ${secs([
+  {id:'s-ttt', ico:'💊', t:'Traitement', html:g.ttt, open:true},
+  {id:'s-tips', ico:'💡', t:'À savoir', html:g.tips, open:true},
+  {id:'s-nat', ico:'🛡', t:'Résistances naturelles', html:g.nat},
+  {id:'s-mech', ico:'🧬', t:'Mécanismes de résistance acquise', html:g.mech},
+  {id:'s-epi', ico:'🦠', t:'Épidémiologie', html:g.epi},
+  {id:'s-mol', ico:'🔗', t:'Molécules liées', raw:true, html:(g.ast||[]).map(x=>D[x]?`<a class="pill ok" href="#m-${x}">${esc(D[x].name)}</a>`:'').join(' ')}
+ ])}
  <p><button class="btn" data-newiso="${g.id}">➕ Utiliser ce germe dans l'antibiogramme</button></p>
  <h3>Références</h3>${refList(g.refs)}</section>`;
+}
+
+
+/* ---------- mise en forme lisible des fiches ---------- */
+function lbl(s){
+ let m=s.match(/^<b>([^<]{2,90})<\/b>\s*:\s*([\s\S]*)$/); if(m) return `<span class="lbl">${m[1]}</span>${m[2]}`;
+ m=s.match(/^([^<:]{3,70})\s:\s([\s\S]+)$/); if(m) return `<span class="lbl">${m[1]}</span>${m[2]}`;
+ return s;
+}
+function fmtText(t){
+ const lines=t.split(/<br\s*\/?>/i).map(s=>s.trim()).filter(Boolean);
+ let out='', list=null, lt=null;
+ const close=()=>{ if(list){ out+=`<${lt} class="pts">${list.join('')}</${lt}>`; list=null; lt=null; } };
+ for(const ln of lines){
+  let m;
+  if((m=ln.match(/^[•·]\s*([\s\S]*)$/))){ if(lt!=='ul') close(); lt='ul'; list=list||[]; list.push('<li>'+lbl(m[1])+'</li>'); continue; }
+  if((m=ln.match(/^(\d+)\.\s+([\s\S]*)$/))){ if(lt!=='ol') close(); lt='ol'; list=list||[]; list.push('<li>'+lbl(m[2])+'</li>'); continue; }
+  close();
+  if((m=ln.match(/^<b>([^<]{2,140})<\/b>\s*:?\s*$/))){ out+=`<div class="sub">${m[1]}</div>`; continue; }
+  if((m=ln.match(/^<b>([^<]{2,90})<\/b>\s*[:—]\s*([\s\S]+)$/))){ out+=`<div class="sub">${m[1]}</div><p>${m[2]}</p>`; continue; }
+  out+=`<p>${ln}</p>`;
+ }
+ close(); return out;
+}
+function fmt(h){
+ if(!h || h==='—') return '';
+ return String(h).split(/(<table[\s\S]*?<\/table>)/).map(p=>p.startsWith('<table')?p:fmtText(p)).join('');
+}
+function secs(list){
+ const L=list.filter(s=>s.html && s.html!=='—');
+ const nav=`<nav class="jump">${L.map(s=>`<button type="button" data-jump="${s.id}">${s.ico} ${s.t}</button>`).join('')}<button type="button" data-togall>⇕ Tout ouvrir/fermer</button></nav>`;
+ return nav + L.map(s=>`<details class="sec" id="${s.id}"${s.open?' open':''}><summary><span class="ico">${s.ico}</span>${s.t}</summary><div class="secbody">${s.raw?s.html:fmt(s.html)}</div></details>`).join('');
+}
+document.addEventListener('click', e=>{
+ const j=e.target.closest('[data-jump]'); if(j){ const d=document.getElementById(j.dataset.jump); if(d){ d.open=true; d.scrollIntoView({behavior:'smooth', block:'start'}); } return; }
+ const t=e.target.closest('[data-togall]'); if(t){ const all=[...document.querySelectorAll('details.sec')]; const open=!all.every(d=>d.open); all.forEach(d=>d.open=open); }
+});
+
+
+/* ---------- ANTIBIOPROPHYLAXIE ---------- */
+const norm = s => String(s||'').replace(/<[^>]+>/g,'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+function viewABP(){
+ const A=window.ABP||{gen:'',specs:[]};
+ const NO = /^Pas d'antibioprophylaxie/;
+ const row = r => `<div class="abprow${NO.test(r.a)?' none':''}" data-txt="${esc(norm(r.p+' '+r.a+' '+r.al))}">
+   <div class="abpproc">${r.p}</div>
+   <div class="abpline"><span class="k">💉</span><span>${NO.test(r.a)?`<span class="pill">${r.a.replace(/^Pas d'antibioprophylaxie/,"Pas d'antibioprophylaxie")}</span>`:`<b>${r.a}</b>`}</span></div>
+   ${r.r&&r.r!=='—'?`<div class="abpline"><span class="k">↻</span><span>Réinjection : ${r.r}</span></div>`:''}
+   ${r.al&&r.al!=='—'?`<div class="abpline"><span class="k">⚠</span><span>Allergie : ${r.al}</span></div>`:''}
+ </div>`;
+ return `<section class="card"><h2>Antibioprophylaxie en chirurgie et médecine interventionnelle (adultes)</h2>
+ <p class="muted small">RFE SFAR/SPILF 2024 (V2.0 du 22/05/2024) — ${A.specs.reduce((n,s)=>n+s.rows.length,0)} situations. Tapez un geste (ex. « DVE », « craniotomie », « gastrostomie », « césarienne »).</p>
+ <input id="abpq" class="search-in" type="search" placeholder="Rechercher un geste, une spécialité, une molécule…" autocomplete="off">
+ <details class="sec" id="abp-gen"><summary><span class="ico">📘</span>Principes généraux, doses, obésité, BLSE, allergie</summary><div class="secbody">${fmt(A.gen)}</div></details>
+ ${A.specs.map((s,i)=>`<details class="sec abpspec" id="abp-${i}"><summary><span class="ico">🔪</span>${esc(s.s)} <span class="muted small" style="font-weight:400">(${s.rows.length})</span></summary><div class="secbody">${s.rows.map(row).join('')}</div></details>`).join('')}
+ <p id="abpnone" class="muted" hidden>Aucun geste trouvé — vérifier l'orthographe ou consulter la RFE.</p>
+ <h3>Référence</h3>${refList(['sfar_abp24'])}</section>`;
+}
+function bindABP(root){
+ const q=$('#abpq',root); if(!q) return;
+ q.oninput=()=>{ const v=norm(q.value).trim(); let any=false;
+  $$('.abpspec',root).forEach(d=>{ let n=0; $$('.abprow',d).forEach(r=>{ const ok=!v || r.dataset.txt.includes(v) || norm(d.querySelector('summary').textContent).includes(v); r.hidden=!ok; if(ok) n++; });
+   d.hidden = v && !n; if(v) d.open = n>0 && n<40; else d.open=false; if(n) any=true; });
+  $('#abpnone',root).hidden = any || !v; };
 }
 
 /* ---------- PATHOLOGIES ---------- */
@@ -198,8 +268,16 @@ function viewPathos(){
 function viewPatho(id){
  const p=window.PATHO.find(x=>x.id===id); if(!p) return '<p>Introuvable.</p>';
  return `<section class="card"><a class="back" href="#pathologies">← Pathologies</a><h2>${esc(p.name)}</h2>
- ${p.div && p.div!=='—'?`<div class="diverg"><b>⚖ Concordance / divergences entre recommandations</b><br>${p.div}</div>`:''}
- <dl class="fiche"><dt>Épidémiologie / germes</dt><dd>${p.epi}</dd><dt>Sémiologie / définitions</dt><dd>${p.semio}</dd><dt>Examens</dt><dd>${p.diag}</dd><dt>Traitement probabiliste</dt><dd>${p.proba}</dd><dt>Traitement documenté</dt><dd>${p.doc}</dd><dt>Durée</dt><dd>${p.duree}</dd></dl>
+ ${p.div && p.div!=='—'?`<button type="button" class="badge-div" data-jump="s-div">⚖ Concordance / divergences entre recommandations</button>`:''}
+ ${secs([
+  {id:'s-proba', ico:'💊', t:'Traitement probabiliste', html:p.proba, open:true},
+  {id:'s-doc', ico:'🎯', t:'Traitement documenté / adaptation', html:p.doc},
+  {id:'s-duree', ico:'⏱', t:'Durée', html:p.duree, open:true},
+  {id:'s-diag', ico:'🔬', t:'Diagnostic / examens', html:p.diag},
+  {id:'s-semio', ico:'🩺', t:'Clinique / définitions', html:p.semio},
+  {id:'s-epi', ico:'🦠', t:'Épidémiologie / germes', html:p.epi},
+  {id:'s-div', ico:'⚖', t:'Recommandations : concordance / divergences', html:p.div}
+ ])}
  <p><button class="btn" data-site="${p.site}">➕ Sélectionner ce site dans l'antibiogramme</button></p>
  <h3>Références</h3>${refList(p.refs)}</section>`;
 }
@@ -212,7 +290,13 @@ function viewExams(){
 function viewExam(id){
  const e=window.EXAMS.find(x=>x.id===id); if(!e) return '<p>Introuvable.</p>';
  return `<section class="card"><a class="back" href="#examens">← Examens</a><h2>${esc(e.name)}</h2>
- <dl class="fiche"><dt>Principe</dt><dd>${e.princ}</dd><dt>Performances (Se, Sp, VPP, VPN, seuils)</dt><dd>${e.perf}</dd><dt>Faux positifs</dt><dd>${e.fp}</dd><dt>Faux négatifs</dt><dd>${e.fn}</dd><dt>Utilisation pratique</dt><dd>${e.usage}</dd></dl>
+ ${secs([
+  {id:'s-usage', ico:'🎯', t:'Utilisation pratique / indications', html:e.usage, open:true},
+  {id:'s-perf', ico:'📊', t:'Performances (Se, Sp, VPP, VPN, seuils)', html:e.perf, open:true},
+  {id:'s-princ', ico:'🔬', t:'Principe', html:e.princ},
+  {id:'s-fp', ico:'➕', t:'Faux positifs', html:e.fp},
+  {id:'s-fn', ico:'➖', t:'Faux négatifs', html:e.fn}
+ ])}
  <h3>Références</h3>${refList(e.refs)}</section>`;
 }
 
@@ -290,6 +374,8 @@ function viewRefs(){
 
 /* ---------- ANTIBIOGRAMME ---------- */
 let SAMPLE = null, sampleImages=false;
+const PHOTO = {msg:'', thumbs:[]};
+function photoMsg(h){ PHOTO.msg=h; const m=document.getElementById('photomsg'); if(m) m.innerHTML=h; }
 function germOptions(sel){
  const groups={}; window.GERMS.forEach(g=>{(groups[g.cat]=groups[g.cat]||[]).push(g);});
  return '<option value="">— Choisir le germe —</option>'+Object.entries(groups).map(([c,gs])=>`<optgroup label="${esc(c)}">${gs.map(g=>`<option value="${g.id}" ${sel===g.id?'selected':''}>${esc(g.name)}</option>`).join('')}</optgroup>`).join('');
@@ -320,9 +406,12 @@ function viewABG(){
  <div class="note small">Aide à la décision : propositions hiérarchisées selon les recommandations (FR > EU > US), à confronter au contexte clinique, aux protocoles locaux et à l'avis infectiologique/pharmacologique. Patient : ${patientSummary()} — <a href="#patient">modifier</a>.</div>
  <h3>1. Site(s) infecté(s) <small class="muted">(plusieurs possibles)</small></h3><div class="chips">${sites}</div>
  <h3>2. Antibiogramme(s)</h3>
- <div class="photo ${SAMPLE?'':'off'}">
-   <label class="btn primary">📷 Photographier / importer un ou plusieurs antibiogrammes<input type="file" id="photo" accept="image/*" capture="environment" multiple hidden></label>
-   <span class="warn small">🔒 Cadrer uniquement le tableau de l'antibiogramme : aucun nom, IPP ni date de naissance sur la photo.</span><span id="photomsg" class="muted">${SAMPLE? 'Lecture automatique par Claude — vérifiez toujours la transcription.' : 'Lecture photo disponible lorsque l\'application est ouverte dans Claude (autorisation demandée au 1er usage). Saisie manuelle ci-dessous.'}</span>
+ <div class="photo">
+   <button type="button" class="btn primary" data-photo="cam">📷 Prendre une photo</button>
+   <button type="button" class="btn" data-photo="lib">🖼 Photothèque / fichiers (plusieurs possibles)</button>
+   <span class="warn small">🔒 Cadrer uniquement le tableau de l'antibiogramme : aucun nom, IPP ni date de naissance sur la photo.</span>
+   <div id="thumbs" class="thumbs">${PHOTO.thumbs.map(u=>`<img src="${u}" alt="photo">`).join('')}</div>
+   <span id="photomsg" class="muted">${PHOTO.msg || (SAMPLE? 'Lecture automatique par Claude — vérifiez toujours la transcription.' : 'La lecture automatique fonctionne quand l\'application est ouverte dans Claude (claude.ai ou application Claude), avec autorisation au 1er usage. Sinon : saisie manuelle ci-dessous.')}</span>
  </div>
  <div id="isos">${AB.isolates.map((iso,i)=>`<div class="iso"><div class="isohead"><b>Isolat ${i+1}</b>${iso.src?` <span class="muted small">${esc(iso.src)}</span>`:''}<select data-germ="${i}">${germOptions(iso.germ)}</select><button class="x" data-del="${i}" title="Supprimer">✕</button></div>${iso.raw?`<div class="muted small">Lu sur la photo : « ${esc(iso.raw)} »</div>`:''}${phenoUI(iso,i)}${astGrid(iso,i)}</div>`).join('')}</div>
  <p><button class="btn" id="addiso">➕ Ajouter un isolat (saisie manuelle)</button> ${AB.isolates.length?'<button class="btn ghost" id="clearabg">Tout effacer</button>':''}</p>
@@ -386,20 +475,32 @@ function bindABG(root){
  $$('[data-ph]',root).forEach(c=>c.onchange=()=>{ const [i,k]=c.dataset.ph.split(':'); (AB.isolates[+i].ph=AB.isolates[+i].ph||{})[k]=c.checked; saveAB(); keepScroll(render); });
  $$('[data-phs]',root).forEach(c=>c.onchange=()=>{ const [i,k]=c.dataset.phs.split(':'); (AB.isolates[+i].ph=AB.isolates[+i].ph||{})[k]=c.value||null; saveAB(); keepScroll(render); });
  $$('[data-addab]',root).forEach(s=>s.onchange=()=>{ if(!s.value) return; const i=+s.dataset.addab; (AB.isolates[i].ast=AB.isolates[i].ast||{})[s.value]='S'; saveAB(); keepScroll(render); });
- const ph=$('#photo',root); if(ph) ph.onchange=()=>readPhotos([...ph.files]);
 }
 function keepScroll(fn){ const y=window.scrollY; fn(); window.scrollTo(0,y); }
 
 /* ---------- lecture photo via Claude ---------- */
+function setupPhotoInputs(){
+ // entrées <input type=file> permanentes, hors de la zone re-rendue : un re-rendu pendant que l'appareil photo est ouvert ne fait plus perdre la photo
+ const mk=(id, cap, multi)=>{ let i=document.getElementById(id); if(i) return i; i=document.createElement('input'); i.type='file'; i.id=id; i.accept='image/*'; if(cap) i.setAttribute('capture','environment'); if(multi) i.multiple=true;
+  i.style.cssText='position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0'; document.body.appendChild(i);
+  i.addEventListener('change', ()=>{ const f=[...(i.files||[])]; if(f.length) readPhotos(f); i.value=''; }); return i; };
+ const cam=mk('camIn',true,false), lib=mk('libIn',false,true);
+ document.addEventListener('click', e=>{ const b=e.target.closest('[data-photo]'); if(!b) return; e.preventDefault(); (b.dataset.photo==='cam'?cam:lib).click(); });
+}
 async function shrink(file){
  try{ const img = await createImageBitmap(file); const max=1800; const s=Math.min(1, max/Math.max(img.width,img.height));
   const c=document.createElement('canvas'); c.width=Math.round(img.width*s); c.height=Math.round(img.height*s); c.getContext('2d').drawImage(img,0,0,c.width,c.height);
   return await new Promise(r=>c.toBlob(r,'image/jpeg',0.85)); }catch(e){ return file; }
 }
 async function readPhotos(files){
- const msg=$('#photomsg'); if(!files.length) return;
- if(!SAMPLE){ msg.textContent='Lecture photo indisponible ici : saisir manuellement.'; return; }
- msg.innerHTML='<span class="spin"></span> Lecture de '+files.length+' image(s) par Claude…';
+ if(!files.length) return;
+ PHOTO.thumbs.forEach(u=>{ try{URL.revokeObjectURL(u);}catch(e){} });
+ PHOTO.thumbs = files.map(f=>{ try{ return URL.createObjectURL(f); }catch(e){ return ''; } }).filter(Boolean);
+ const th=document.getElementById('thumbs'); if(th) th.innerHTML=PHOTO.thumbs.map(u=>`<img src="${u}" alt="photo">`).join('');
+ photoMsg('✅ '+files.length+' photo(s) reçue(s).');
+ if(!SAMPLE && window.claude && window.claude.use){ try{ SAMPLE = await window.claude.use('sample'); }catch(e){} }
+ if(!SAMPLE){ photoMsg('📷 '+files.length+' photo(s) reçue(s), mais la lecture automatique n\'est pas disponible dans cette version (elle nécessite d\'ouvrir l\'application dans Claude). Saisir les résultats manuellement ci-dessous.'); return; }
+ photoMsg('<span class="spin"></span> Lecture de '+files.length+' image(s) par Claude… (ne pas quitter la page)');
  try{
   const lim = SAMPLE.limits? await SAMPLE.limits() : {images:true};
   if(!lim || !lim.images){ msg.textContent='Les images ne sont pas disponibles pour cette page.'; return; }
@@ -424,10 +525,10 @@ Liste des molécules (id=nom) : ${drugList}`;
    AB.isolates.push({germ:gid||'', ast, ph:{mr:!!ph.mr, blse:!!ph.blse, ampc:!!ph.ampc, carba:ph.carba||null}, raw:(x.organism||'')+(x.specimen?' — '+x.specimen:'')+(x.comments?' — '+x.comments:''), src:'photo'});
    n++;
   });
+  PHOTO.msg = n? `✅ ${n} isolat(s) transcrit(s) — <b>vérifiez chaque ligne avant d'utiliser les propositions</b>.` : 'Aucun isolat reconnu : réessayer avec une photo plus nette (bien à plat, sans reflet) ou saisir manuellement.';
   saveAB(); render();
-  const m2=$('#photomsg'); if(m2) m2.innerHTML = n? `✅ ${n} isolat(s) transcrit(s) — <b>vérifiez chaque ligne avant d'utiliser les propositions</b>.` : 'Aucun isolat reconnu : réessayer avec une photo plus nette ou saisir manuellement.';
  }catch(e){
-  const m2=$('#photomsg'); if(m2) m2.textContent = e && e.code==='not_granted' ? 'Autorisation refusée : saisie manuelle.' : e && e.code==='rate_limited' ? 'Trop de requêtes : réessayer dans un instant.' : 'Échec de la lecture : saisir manuellement ('+((e&&e.message)||e)+').';
+  photoMsg(e && e.code==='not_granted' ? 'Autorisation refusée : la lecture photo nécessite d\'accepter la demande de Claude. Saisie manuelle possible.' : e && e.code==='rate_limited' ? 'Trop de requêtes : réessayer dans un instant.' : 'Échec de la lecture : réessayer ou saisir manuellement ('+esc(String((e&&e.message)||e))+').');
  }
 }
 
@@ -440,12 +541,13 @@ function searchAll(q){
  window.GERMS.forEach(g=>{ if(m(g.name)||(g.alias||[]).some(m)) r.push(`<a href="#g-${g.id}">🦠 ${esc(g.name)}</a>`); });
  window.PATHO.forEach(p=>{ if(m(p.name)||m(p.cat)) r.push(`<a href="#p-${p.id}">🩺 ${esc(p.name)}</a>`); });
  window.EXAMS.forEach(e=>{ if(m(e.name)) r.push(`<a href="#e-${e.id}">🔬 ${esc(e.name)}</a>`); });
+ (window.ABP?window.ABP.specs:[]).forEach(s=>s.rows.forEach(x=>{ if(m(x.p.replace(/<[^>]+>/g,''))) r.push(`<a href="#antibioprophylaxie">🛡 ABP — ${esc(x.p.replace(/<[^>]+>/g,''))}</a>`); }));
  Object.keys(GL).forEach(k=>{ if(m(k)||m(GL[k])) r.push(`<a href="#references">🔤 <b>${esc(k)}</b> — ${esc(GL[k])}</a>`); });
  return r.slice(0,16).join('') || '<span class="muted">Aucun résultat</span>';
 }
 
 /* ---------- routage ---------- */
-const TABS = [['antibiogramme','Antibiogramme'],['molecules','Anti-infectieux'],['pkpd','PK/PD & STP'],['germes','Germes'],['pathologies','Pathologies'],['examens','Examens'],['patient','Patient'],['references','Références']];
+const TABS = [['antibiogramme','Antibiogramme'],['molecules','Anti-infectieux'],['pkpd','PK/PD & STP'],['germes','Germes'],['pathologies','Pathologies'],['examens','Examens'],['antibioprophylaxie','Antibioprophylaxie'],['patient','Patient'],['references','Références']];
 function route(){ return (location.hash||'#antibiogramme').slice(1); }
 function render(){
  const r = route(); const main=$('#main');
@@ -454,7 +556,7 @@ function render(){
  else if(r.startsWith('g-')){ html=viewGerm(r.slice(2)); tab='germes'; }
  else if(r.startsWith('p-')){ html=viewPatho(r.slice(2)); tab='pathologies'; }
  else if(r.startsWith('e-')){ html=viewExam(r.slice(2)); tab='examens'; }
- else html = ({antibiogramme:viewABG, molecules:viewMolecules, pkpd:viewPKPD, germes:viewGerms, pathologies:viewPathos, examens:viewExams, patient:viewPatient, references:viewRefs}[r]||viewABG)();
+ else html = ({antibiogramme:viewABG, molecules:viewMolecules, pkpd:viewPKPD, germes:viewGerms, pathologies:viewPathos, examens:viewExams, antibioprophylaxie:viewABP, patient:viewPatient, references:viewRefs}[r]||viewABG)();
  $$('#tabs a').forEach(a=>a.classList.toggle('on', a.getAttribute('href')==='#'+tab));
  main.innerHTML = html;
  main.querySelectorAll('table').forEach(t=>{
@@ -463,7 +565,7 @@ function render(){
    if(head.length>=3 && head.every(c=>c.tagName==='TH')){ t.classList.add('stack'); rows.slice(1).forEach(r=>[...r.cells].forEach((c,i)=>{ if(i>0 && head[i]) c.setAttribute('data-label', head[i].textContent.trim()); })); }
  });
  annotate(main);
- bindPatient(main); bindABG(main);
+ bindPatient(main); bindABG(main); bindABP(main);
  $$('[data-molt]',main).forEach(b=>b.onclick=()=>{ molFilter.type=b.dataset.molt; render(); });
  const mq=$('#molq',main); if(mq){ mq.oninput=()=>{ molFilter.q=mq.value.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,''); const pos=mq.selectionStart; render(); const n=$('#molq'); n.focus(); n.setSelectionRange(pos,pos); }; }
  const gq=$('#germq',main); if(gq){ gq.oninput=()=>{ germQ=gq.value.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,''); const pos=gq.selectionStart; render(); const n=$('#germq'); n.focus(); n.setSelectionRange(pos,pos); }; }
@@ -481,6 +583,7 @@ function init(){
  document.addEventListener('click', gpop);
  window.addEventListener('hashchange', ()=>{ render(); window.scrollTo(0,0); });
  render();
+ setupPhotoInputs();
  try{ if(window.claude && window.claude.use){ window.claude.use('sample').then(s=>{ SAMPLE=s; if(s && s.limits) s.limits().then(l=>{sampleImages=!!(l&&l.images);}).catch(()=>{}); if(route()==='antibiogramme') keepScroll(render); }).catch(()=>{}); } }catch(e){}
 }
 document.addEventListener('DOMContentLoaded', init);

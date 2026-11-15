@@ -149,6 +149,32 @@ dl.fiche dd,dl.fiche dt{min-width:0}
  table.stack td{display:block;border:0;padding:3px 0;white-space:normal!important}
  table.stack td:first-child{font-weight:700;color:var(--pri);padding-top:2px}
  table.stack td[data-label]::before{content:attr(data-label) " : ";font-weight:600;color:var(--muted)} }
+/* fiches en sections repliables */
+.jump{display:flex;gap:6px;overflow-x:auto;padding:4px 0 10px;scrollbar-width:none}
+.jump button{flex-shrink:0;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:6px 11px;font:inherit;font-size:13px;cursor:pointer;white-space:nowrap}
+.jump button:hover{border-color:var(--pri)}
+.badge-div{border:1px solid var(--warn);background:var(--warnbg);color:var(--warn);border-radius:999px;padding:5px 11px;font:inherit;font-size:13px;margin:0 0 8px;cursor:pointer}
+details.sec{border:1px solid var(--line);border-radius:12px;margin:10px 0;background:var(--card);overflow:hidden;scroll-margin-top:150px}
+details.sec>summary{cursor:pointer;list-style:none;padding:11px 14px;font-weight:700;color:var(--pri);display:flex;gap:9px;align-items:center;background:var(--pri2)}
+details.sec>summary::-webkit-details-marker{display:none}
+details.sec>summary::after{content:'▾';margin-left:auto;transition:transform .2s}
+details.sec:not([open])>summary::after{transform:rotate(-90deg)}
+.secbody{padding:6px 14px 12px}
+.secbody p{margin:.45em 0}
+.secbody .sub{font-weight:700;margin:1em 0 .35em;padding-left:9px;border-left:3px solid var(--pri)}
+.secbody .sub:first-child{margin-top:.5em}
+ul.pts,ol.pts{margin:.3em 0 .7em;padding-left:1.15em}
+ul.pts li,ol.pts li{margin:.45em 0}
+ul.pts li::marker{color:var(--pri)}
+.lbl{display:block;font-weight:700;color:var(--pri);font-size:.93em}
+@media (max-width:640px){ html,body{font-size:14.5px} details.sec>summary{padding:10px 12px} .secbody{padding:4px 12px 10px} }
+.thumbs{display:flex;gap:6px;flex-wrap:wrap;width:100%} .thumbs img{height:64px;border-radius:8px;border:1px solid var(--line)} .thumbs:empty{display:none}
+.abprow{border-top:1px solid var(--line);padding:9px 0}
+.abprow:first-child{border-top:0}
+.abpproc{font-weight:600;margin-bottom:3px}
+.abpline{display:flex;gap:8px;font-size:.95em;margin:2px 0} .abpline .k{width:18px;flex-shrink:0;text-align:center}
+.abprow.none .abpproc{font-weight:500}
+.search-in{width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);font:inherit;margin:4px 0 8px}
 </style>
 </head>
 <body>
@@ -166,7 +192,7 @@ dl.fiche dd,dl.fiche dt{min-width:0}
  <div class="brand-badge" title="CHU de Bordeaux"><img src="chu-bordeaux.jpg" alt="Logo CHU de Bordeaux"></div>
  <div class="brand-badge" title="Infectio Réa"><img src="icon-192.png" alt="Logo Infectio Réa"></div>
 </div>
-<footer>Aide à la décision pour cliniciens de réanimation — ne remplace ni l'avis infectiologique/pharmacologique, ni les protocoles locaux, ni les RCP. Posologies pour l'adulte. Références : SFAR/SRLF, SPILF/HAS, CA-SFM 2025, ePOPI, GPR, abxbmi, ESCMID, IDSA (onglet Références). Version 1.6 du 15/11/2026.</footer>
+<footer>Aide à la décision pour cliniciens de réanimation — ne remplace ni l'avis infectiologique/pharmacologique, ni les protocoles locaux, ni les RCP. Posologies pour l'adulte. Références : SFAR/SRLF, SPILF/HAS, CA-SFM 2025, ePOPI, GPR, abxbmi, ESCMID, IDSA (onglet Références). Version 1.7 du 15/11/2026.</footer>
 <script src="js/refs.js"></script>
 <script src="js/glossary.js"></script>
 <script src="js/drugs_ab.js"></script>
@@ -174,6 +200,7 @@ dl.fiche dd,dl.fiche dt{min-width:0}
 <script src="js/germs.js"></script>
 <script src="js/patho.js"></script>
 <script src="js/exams.js"></script>
+<script src="js/abp.js"></script>
 <script src="js/engine.js"></script>
 <script src="js/app.js"></script>
 </body>
