@@ -467,7 +467,7 @@ window.DRUGS.push(
  renal:{arc:'Sous-exposition fréquente : 600 mg q8h ou continu (1200–1800 mg/24 h) guidé par STP', n:'Pas d\'adaptation', m:'Pas d\'adaptation', s:'Pas d\'adaptation (surveiller plaquettes)', es:'Pas d\'adaptation (accumulation des métabolites : NFS 2×/sem)', crrt:'600 mg q12h (q8h si effluent élevé, STP)', ihd:'600 mg q12h, administrer après la séance'},
  tdm:'Cmin 2–7 mg/L (toxicité hématologique si > 7–8 mg/L).', lcr:'Excellente (≈ 70 %).',
  site:{snc:'ok',pulm:'ok',uri:'caution',bact:'caution',abdo:'caution',peau:'ok',os:'ok',endo:'caution',kt:'caution'},
- refs:['nar25','dumitrescu07','luyt_jni20','doses25','idsa_vent17','bdpm']},
+ refs:['nar25','dumitrescu07','luyt_jni20','doses25','idsa_vent17','kato21_lzd','kawasuji23_lzd','shorr05_lzd','bdpm']},
 
 /* ======================= FLUOROQUINOLONES ======================= */
 {id:'cipro', type:'ab', name:'Ciprofloxacine', cls:'Fluoroquinolone', alias:['ciprofloxacine','ciprofloxacin','CIP','ciflox','fluoroquinolone'],

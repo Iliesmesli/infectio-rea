@@ -454,7 +454,7 @@ function viewRefs(){
 }
 
 /* ---------- ANTIBIOGRAMME ---------- */
-const APP_VERSION='1.9';
+const APP_VERSION='1.10';
 let SAMPLE = null, sampleImages=false;
 const PHOTO = {msg:'', thumbs:[]}; let PHOTO_TARGET='abg';
 function photoMsg(h){ PHOTO.msg=h; const m=document.getElementById('photomsg'); if(m) m.innerHTML=h; }
@@ -641,12 +641,18 @@ async function readPhotosLocal(files){
  if(!window.OCR){ photoMsg('Module de lecture absent : saisir manuellement.'); return; }
  photoMsg('<span class="spin"></span> Lecture sur le téléphone (la photo ne quitte pas l\'appareil)…');
  try{
-  const text = await window.OCR.recognize(files, m=>photoMsg('<span class="spin"></span> '+esc(m)));
-  const r = window.OCR.parseABG(text);
+  let text = await window.OCR.recognize(files, m=>photoMsg('<span class="spin"></span> '+esc(m)), '6');
+  let r = window.OCR.parseABG(text);
+  for(const [psm,rot] of [['4',0],['3',0],['6',90],['6',270],['11',0]]){ // mises en page atypiques / photo tournée : on garde la meilleure lecture
+   if(r.nres>=4) break;
+   const t2 = await window.OCR.recognize(files, m=>photoMsg('<span class="spin"></span> Nouvelle tentative (mise en page ou orientation différente)… '+esc(m)), psm, rot);
+   const r2 = window.OCR.parseABG(t2); if(r2.nres>r.nres){ r=r2; text=t2; }
+  }
   const n = addIsolates(r.isolates, 'ocr');
   const nres = r.isolates.reduce((a,x)=>a+x.results.length,0);
   PHOTO.msg = (n? `✅ Lecture sur l'appareil : ${n} isolat(s), ${nres} résultat(s) reconnu(s)${r.ambig?` — ${r.ambig} ligne(s) non attribuée(s)`:''}. <b>Vérifiez chaque ligne et complétez</b> (germe, phénotype, molécules manquantes).`
-    : 'Lecture sur l\'appareil : aucun résultat reconnu. Photo bien à plat, nette, cadrée sur le tableau, sans reflet — ou saisie manuelle ci-dessous.') + OCRTXT(text);
+    : 'Lecture sur l\'appareil : aucun résultat reconnu. Photo bien à plat, nette, cadrée sur le tableau, sans reflet — ou saisie manuelle ci-dessous.')
+    + (n && !nres ? ' <b>Germe reconnu mais aucun résultat S/R lu</b> : ouvrir « Texte lu sur la photo » pour voir ce que le téléphone a lu (format de compte rendu non prévu ?).' : '') + OCRTXT(text);
   saveAB(); render();
  }catch(e){ photoMsg('Échec de la lecture sur l\'appareil ('+esc(String((e&&e.message)||e))+'). Saisie manuelle ci-dessous.'); }
 }

@@ -21,7 +21,7 @@ async function getWorker(){
  return loading;
 }
 /* prétraitement : orientation EXIF respectée, niveaux de gris, contraste, largeur ~2000 px */
-async function prep(file){
+async function prep(file, rot){
  const url = URL.createObjectURL(file);
  try{
   const img = await new Promise((ok,ko)=>{ const i=new Image(); i.onload=()=>ok(i); i.onerror=ko; i.src=url; });
@@ -32,17 +32,20 @@ async function prep(file){
   for(let i=0;i<p.length;i+=4){ const g=(p[i]*0.299+p[i+1]*0.587+p[i+2]*0.114)|0; p[i]=g; if(g<mn) mn=g; if(g>mx) mx=g; }
   const k = mx-mn>40 ? 255/(mx-mn) : 1;
   for(let i=0;i<p.length;i+=4){ const g=Math.max(0,Math.min(255,(p[i]-mn)*k)); p[i]=p[i+1]=p[i+2]=g; }
-  x.putImageData(d,0,0); return c;
+  x.putImageData(d,0,0);
+  if(rot){ const r=document.createElement('canvas'); r.width=c.height; r.height=c.width; const y=r.getContext('2d'); y.translate(r.width/2,r.height/2); y.rotate(rot*Math.PI/180); y.drawImage(c,-c.width/2,-c.height/2); return r; }
+  return c;
  }finally{ URL.revokeObjectURL(url); }
 }
-async function recognize(files, onProgress){
+async function recognize(files, onProgress, psm, rot){
  const n=files.length; let done=0;
  CUR = m=>{ if(!onProgress) return;
    if(m.status==='recognizing text') onProgress(`Lecture de l'image ${done+1}/${n}… ${Math.round((m.progress||0)*100)} %`);
    else if(/load|initializ/.test(m.status||'')) onProgress(`Préparation du module de lecture (1er usage : téléchargement ≈ 5 Mo)… ${m.progress?Math.round(m.progress*100)+' %':''}`); };
  onProgress && onProgress('Préparation du module de lecture…');
  const w = await getWorker(); const texts=[];
- for(const f of files){ const cv = await prep(f); const r = await w.recognize(cv); texts.push((r && r.data && r.data.text)||''); done++; }
+ await w.setParameters({ tessedit_pageseg_mode: psm||'6' });
+ for(const f of files){ const cv = await prep(f, rot||0); const r = await w.recognize(cv); texts.push((r && r.data && r.data.text)||''); done++; }
  CUR=null; return texts.join('\n');
 }
 
@@ -104,8 +107,11 @@ const LABELS = [
  [/benzylpenicilline|penicilline g|\bpeni g\b|^penicilline$|^penicilline\b/,'peniG'],
  [/amphotericine/,'amphoL'], [/flucytosine|fluorocytosine|\b5 ?fc\b/,'5fc']
 ];
+const ABBR = {amx:'amox',amc:'amoxclav',tic:null,tcc:null,pip:null,tzp:'pipetazo',ptz:'pipetazo',tem:'temo',cf:null,cfz:'cefazoline',fox:'_fox',cxm:null,ctx:'cefotax',cro:'ceftriax',caz:'ceftaz',fep:'cefepime',cza:'cazavi',czt:'ceftolo',fdc:'cefiderocol',atm:'aztreo',etp:'ertapeneme',ipm:'imipeneme',imp:'imipeneme',mem:'merope',mer:'merope',imr:'imirele',mev:'merovabor',amk:'amika',ak:'amika',gen:'genta',gm:'genta',tob:'tobra',tm:'tobra',cip:'cipro',lvx:'levo',lev:'levo',ofx:null,mxf:'moxi',nal:null,sxt:'cotrimox',fos:'fosfo',ft:null,nit:null,cst:'colistine',col:'colistine',cs:'colistine',tgc:'tigec',pen:'peniG',oxa:'cloxa',ox:'cloxa',ery:null,cli:'clinda',cd:'clinda',da:'clinda',lnz:'linez',lzd:'linez',van:'vanco',va:'vanco',tec:'teico',dap:'dapto',tet:'doxy',te:'doxy',dox:'doxy',rif:'rifam',ra:'rifam',rfa:'rifam',fa:null,mup:null,cpt:'ceftaroline',mtz:'metro',flu:'fluco',vrc:'vorico',vor:'vorico',pos:'posa',isa:'isavu',csf:'caspo',cas:'caspo',mcf:'mica',and:'anidula',amb:'amphoL',fc:'5fc'};
 function drugOf(part){
- const t=part.trim(); if(t.length<4) return undefined;
+ const t=part.trim(); const w0=t.split(' ')[0];
+ if(w0.length>=2 && w0.length<=3 && w0 in ABBR && t.split(' ').length<=2) return ABBR[w0];
+ if(t.length<4) return undefined;
  for(const [re,id] of LABELS) if(re.test(t)) return id;   // null = libellé reconnu mais non géré
  const id = window.matchDrug ? window.matchDrug(t) : null; return id||undefined;
 }
@@ -134,7 +140,7 @@ function phenoOf(t, ph){
 const SFPRE = /(sensible )?(a |avec )?(forte|haute) (posologie|exposition|dose)|(sensible )?(a |avec )?exposition (augmentee|forte)|sensible fp\b|\bsfp\b|\bs fp\b/g;
 function sirTokens(rest){
  let t=' '+rest+' ';
- t=t.replace(SFPRE,' sfp ').replace(/\bresistant(e|s|es)?\b/g,' r ').replace(/\bsensibles?\b/g,' s ').replace(/\bintermediaires?\b/g,' i ');
+ t=t.replace(SFPRE,' sfp ').replace(/\b(resistant(e|s|es)?|resistance)\b/g,' r ').replace(/\b(sensibles?|susceptible)\b/g,' s ').replace(/\b(intermediaires?|intermediate)\b/g,' i ');
  const w=t.trim().split(/\s+/).map(x=>x.replace(/^[.,:;]+|[.,:;*]+$/g,'')).map(x=>/^(s|\$)(s|5|\$)?$/.test(x)?'s':/^rr?$/.test(x)?'r':/^(sfp|s\*|sp)$/.test(x)?'sfp':x); let tok=w.filter(x=>x==='s'||x==='r'||x==='i'||x==='sfp');
  if(tok.some(x=>x!=='i')) tok=tok.filter(x=>x!=='i');
  if(!tok.length && w[w.length-1]==='5' && w.length>=1) tok=['s']; // « S » lu « 5 »
@@ -146,7 +152,7 @@ const GNEG_D = new Set(['colistine','temo','aztreo','aztavi','ceftaz','cazavi','
 const gram = id => !id? null : GPOS.has(id)?'p' : (/^(c[a-z]+|asp|mucor|fusarium|scedo|crypto|pcp)$/.test(id) && !/^(cfreundii|cdiff|cuti)$/.test(id))? null : 'n';
 function parseABG(text){
  const lines = (text||'').split(/\n/).map(l=>l.trim()).filter(Boolean);
- const isos=[]; let cur=null, cols=null, colPos=null, ambig=0, used=0;
+ const isos=[]; let cur=null, cols=null, colPos=null, ambig=0, used=0; const pend=[], orphan=[];
  // colonnes : position (en caractères, espaces conservés) de chaque S/R par rapport aux en-têtes de germes
  const placeByPos = (raw, did, tok)=>{
   const rn=N(raw).replace(/\$/g,'s'); const re=/(^|\s)(s|r|i|sfp|ss|rr|s5)(?=\s|$)/g; const pos=[]; let m;
@@ -157,23 +163,34 @@ function parseABG(text){
   idx.forEach((ci,k)=>cols[ci].res[did]=tok[k]); return true; };
  const newIso = (gid,label)=>{ const o={germ_id:gid||'', organism:label||'', res:{}, ph:{}}; isos.push(o); return o; };
  for(const raw of lines){
-  const t = clean(raw); if(!t) continue;
+  const t = clean(raw).replace(/(\d)(s|r|i|sfp)\b/g,'$1 $2').replace(/([<>=])\s+(?=\d)/g,'$1'); if(!t) continue;
   // séparation libellé / résultats : tout ce qui précède le 1er nombre ou le 1er jeton S/I/R
   const words=t.split(' '); let cut=words.length;
   for(let i=0;i<words.length;i++){ const x=words[i]; if(i>0 && (/^[<>=]*\d/.test(x) || /^(s|r|i|sfp|ss|rr|s5)$/.test(x) || /^(sensible|resistant|resistante|intermediaire)s?$/.test(x))){ cut=i; break; } }
   const part=words.slice(0,cut).join(' '), rest=words.slice(cut).join(' ');
   const did = drugOf(part);
   if(did!==undefined){
-   const tok=sirTokens(rest); if(!tok.length || did===null) continue; used++;
+   const tok=sirTokens(rest);
+   if(!tok.length){ pend.push(did); continue; } if(did===null) continue; used++;
    if(cols && cols.length>1){
     if(tok.length===cols.length) cols.forEach((o,i)=>o.res[did]=tok[i]);
     else if(tok.length<cols.length && colPos && placeByPos(raw, did, tok)) {}
     else if(tok.length===1){ // une seule valeur : attribuer à l'isolat pour lequel la molécule est pertinente (Gram)
-     const g = GPOS_D.has(did)?'p': GNEG_D.has(did)?'n':null; const c = g? cols.filter(o=>gram(o.germ_id)===g) : [];
+     const g = GPOS_D.has(did)?'p': GNEG_D.has(did)?'n':null; let c = g? cols.filter(o=>gram(o.germ_id)===g) : [];
+     if(c.length!==1){ const E=window.ENGINE_INFO, GB=window.GERM_BY_ID||{}; // sinon : exclure les germes naturellement résistants
+      if(E && GB) c = cols.filter(o=>{ const gm=GB[o.germ_id]; if(!gm) return true; const nat=(E.NAT[gm.grp]||[]).concat(E.NAT_GERM[gm.id]||[]); return !nat.includes(did); }); }
      if(c.length===1) c[0].res[did]=tok[0]; else ambig++;
     } else ambig++;
-   } else { if(!cur) cur=newIso('',''); cur.res[did]=tok[tok.length===1?0:0]; }
+   } else if(tok.length>=2 && isos.length>=tok.length){ // germes listés au-dessus (« 1 : E. coli / 2 : … ») puis tableau en colonnes
+    cols = isos.slice(-tok.length); colPos=null; cols.forEach((o,i)=>o.res[did]=tok[i]);
+   } else { if(!cur) cur=newIso('',''); cur.res[did]=tok[0]; }
    continue;
+  }
+  { // ligne de résultats seuls (libellé et résultat sur des lignes/blocs différents)
+   const ws=t.split(' ').filter(x=>!/^[<>=]*\d/.test(x));
+   const tk=sirTokens(t);
+   if(tk.length && ws.length && ws.every(x=>/^(s|r|i|sfp|ss|rr|s5|sensible|resistant|resistante|intermediaire|forte|posologie|exposition|a|fp|mg|l|mg\/l)$/.test(x))){
+    orphan.push(...tk); continue; }
   }
   const gs=findGerms(t);
   if(gs.length>=2){ // en-tête de colonnes : plusieurs germes sur une ligne
@@ -190,6 +207,13 @@ function parseABG(text){
   }
   if(cur) phenoOf(t, cur.ph); else { const ph={}; if(phenoOf(t,ph)){ cur=newIso('',''); cur.ph=ph; } }
  }
+ // libellés et résultats lus dans des blocs séparés : appariement dans l'ordre si les nombres concordent
+ if(pend.length && orphan.length){
+  const tgt = cur || newIso('','');
+  const k = Math.min(pend.length, orphan.length);
+  if(Math.abs(pend.length-orphan.length)<=1) for(let i=0;i<k;i++){ if(pend[i] && tgt.res[pend[i]]==null){ tgt.res[pend[i]]=orphan[i]; used++; } }
+  else ambig += Math.max(pend.length, orphan.length);
+ }
  // fusion : même germe dont une occurrence est vide (titre « Culture » puis « Antibiogramme »)
  for(let i=isos.length-1;i>=0;i--){ const o=isos[i]; if(Object.keys(o.res).length) continue;
   const twin=isos.find((p,j)=>j!==i && p.germ_id && p.germ_id===o.germ_id);
@@ -201,7 +225,7 @@ function parseABG(text){
   return { organism:o.organism, germ_id:o.germ_id||null, phenotype:{mr:o.ph.mr??null, blse:o.ph.blse??null, ampc:o.ph.ampc??null, carba:o.ph.carba||null},
    results:Object.entries(o.res).map(([drug_id,sir])=>({drug_id, sir})) };
  });
- return {isolates:out, ambig, lines:used};
+ return {isolates:out, ambig, lines:used, nres:out.reduce((a,x)=>a+x.results.length,0)};
 }
 
 /* ---------- biologie : texte → valeurs ---------- */

@@ -370,7 +370,7 @@ function astStatus(drugId, iso, germ){
 window.astStatus = astStatus;
 
 const SITE_PREF = {
- linez:{pulm:-35, snc:-25, abces:-25, bact:25, endo:45, kt:15, os:5},
+ linez:{pulm:-35, snc:-25, abces:-25, bact:10, endo:45, kt:15, os:5},
  vanco:{pulm:15},
  teico:{pulm:20, snc:40, abces:40},
  tigec:{bact:80, pulm:40, endo:80},
