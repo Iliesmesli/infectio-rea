@@ -276,7 +276,7 @@ async function readBio(files){
  BIOPH.thumbs = files.map(f=>{ try{ return URL.createObjectURL(f); }catch(e){ return ''; } }).filter(Boolean);
  const th=document.getElementById('biothumbs'); if(th) th.innerHTML=BIOPH.thumbs.map(u=>`<img src="${u}" alt="photo">`).join('');
  if(!SAMPLE && window.claude && window.claude.use){ try{ SAMPLE = await window.claude.use('sample'); }catch(e){} }
- if(!SAMPLE){ bioMsg('📷 Photo reçue, mais la lecture automatique n\'est pas disponible dans cette version (ouvrir l\'application dans Claude). Saisir les valeurs ci-dessous.'); return; }
+ if(!SAMPLE) return readBioLocal(files);
  bioMsg('<span class="spin"></span> Lecture par Claude… (ne pas quitter la page)');
  try{
   const B=window.BIO; const spec = Object.entries(B.T).map(([k,t])=>`- ${k} (${t.name}) : ${t.fields.filter(f=>f.h!=='choix').map(f=>`${f.id} = ${f.l}${f.u?' en '+f.u:''}`).join(' ; ')}`).join('\n');
@@ -295,7 +295,23 @@ Règles : convertis dans l'unité cible (glucose g/L × 5,55 = mmol/L ; mg/dL ×
   BIOS={type:out.type, v}; saveBIO();
   BIOPH.msg = `✅ ${Object.keys(v).length} valeur(s) transcrite(s) (${esc(B.T[out.type].name)}) — <b>vérifiez chaque valeur</b>.${out.notes?' <span class="muted">'+esc(out.notes)+'</span>':''}`;
   render();
- }catch(e){ bioMsg(e && e.code==='not_granted' ? 'Autorisation refusée : saisie manuelle.' : 'Échec de la lecture : réessayer ou saisir manuellement ('+esc(String((e&&e.message)||e))+').'); }
+ }catch(e){ return readBioLocal(files); }
+}
+async function readBioLocal(files){
+ if(!window.OCR){ bioMsg('Module de lecture absent : saisir manuellement.'); return; }
+ bioMsg('<span class="spin"></span> Lecture sur le téléphone (la photo ne quitte pas l\'appareil)…');
+ try{
+  const B=window.BIO;
+  const text = await window.OCR.recognize(files, m=>bioMsg('<span class="spin"></span> '+esc(m)));
+  const out = window.OCR.parseBio(text, BIOS.type);
+  const v={}; Object.entries(out.values||{}).forEach(([k,x])=>{ if(B.T[out.type].fields.some(f=>f.id===k) && x!=null && !isNaN(+x)) v[k]=String(+x); });
+  if(out.ctx && (B.CTX[out.type]||[]).some(([k])=>k===out.ctx)) v.ctx=out.ctx;
+  const n=Object.keys(v).filter(k=>k!=='ctx').length;
+  if(n){ BIOS={type:out.type, v}; saveBIO(); }
+  BIOPH.msg = (n? `✅ Lecture sur l'appareil : ${n} valeur(s) (${esc(B.T[out.type].name)}). <b>Vérifiez le type de prélèvement, chaque valeur et son unité</b>, et complétez si besoin.`
+    : 'Lecture sur l\'appareil : aucune valeur reconnue. Choisir le type de prélèvement et saisir les valeurs (ou reprendre une photo nette, à plat, cadrée sur les résultats).') + OCRTXT(text);
+  render();
+ }catch(e){ bioMsg('Échec de la lecture sur l\'appareil ('+esc(String((e&&e.message)||e))+'). Saisir les valeurs ci-dessous.'); }
 }
 
 /* ---------- ANTIBIOPROPHYLAXIE ---------- */
@@ -438,7 +454,7 @@ function viewRefs(){
 }
 
 /* ---------- ANTIBIOGRAMME ---------- */
-const APP_VERSION='1.8';
+const APP_VERSION='1.9';
 let SAMPLE = null, sampleImages=false;
 const PHOTO = {msg:'', thumbs:[]}; let PHOTO_TARGET='abg';
 function photoMsg(h){ PHOTO.msg=h; const m=document.getElementById('photomsg'); if(m) m.innerHTML=h; }
@@ -477,9 +493,9 @@ function viewABG(){
    <button type="button" class="btn" data-photo="lib">🖼 Photothèque / fichiers (plusieurs possibles)</button>
    <span class="warn small">🔒 Cadrer uniquement le tableau de l'antibiogramme : aucun nom, IPP ni date de naissance sur la photo.</span>
    <div id="thumbs" class="thumbs">${PHOTO.thumbs.map(u=>`<img src="${u}" alt="photo">`).join('')}</div>
-   <span id="photomsg" class="muted">${PHOTO.msg || (SAMPLE? 'Lecture automatique par Claude — vérifiez toujours la transcription.' : 'La lecture automatique fonctionne quand l\'application est ouverte dans Claude (claude.ai ou application Claude), avec autorisation au 1er usage. Sinon : saisie manuelle ci-dessous.')}</span>
+   <span id="photomsg" class="muted">${PHOTO.msg || (SAMPLE? 'Lecture automatique par Claude — vérifiez toujours la transcription.' : 'Lecture automatique directement sur le téléphone (aucun compte, la photo ne quitte pas l\'appareil ; 1er usage : ≈ 5 Mo à télécharger). Vérifiez toujours la transcription.')}</span>
  </div>
- <div id="isos">${AB.isolates.map((iso,i)=>`<div class="iso"><div class="isohead"><b>Isolat ${i+1}</b>${iso.src?` <span class="muted small">${esc(iso.src)}</span>`:''}<select data-germ="${i}">${germOptions(iso.germ)}</select><button class="x" data-del="${i}" title="Supprimer">✕</button></div>${iso.raw?`<div class="muted small">Lu sur la photo : « ${esc(iso.raw)} »</div>`:''}${phenoUI(iso,i)}${astGrid(iso,i)}</div>`).join('')}</div>
+ <div id="isos">${AB.isolates.map((iso,i)=>`<div class="iso"><div class="isohead"><b>Isolat ${i+1}</b>${iso.src?` <span class="muted small">${esc(({photo:'📷 lu par Claude',ocr:'📷 lu sur l\'appareil'})[iso.src]||iso.src)}</span>`:''}<select data-germ="${i}">${germOptions(iso.germ)}</select><button class="x" data-del="${i}" title="Supprimer">✕</button></div>${iso.raw?`<div class="muted small">Lu sur la photo : « ${esc(iso.raw)} »</div>`:''}${phenoUI(iso,i)}${astGrid(iso,i)}</div>`).join('')}</div>
  <p><button class="btn" id="addiso">➕ Ajouter un isolat (saisie manuelle)</button> ${AB.isolates.length?'<button class="btn ghost" id="clearabg">Tout effacer</button>':''}</p>
  <h3>3. Propositions</h3>
  <div id="results">${renderResults()}</div>
@@ -583,11 +599,11 @@ async function readPhotos(files){
  const th=document.getElementById('thumbs'); if(th) th.innerHTML=PHOTO.thumbs.map(u=>`<img src="${u}" alt="photo">`).join('');
  photoMsg('✅ '+files.length+' photo(s) reçue(s).');
  if(!SAMPLE && window.claude && window.claude.use){ try{ SAMPLE = await window.claude.use('sample'); }catch(e){} }
- if(!SAMPLE){ photoMsg('📷 '+files.length+' photo(s) reçue(s), mais la lecture automatique n\'est pas disponible dans cette version (elle nécessite d\'ouvrir l\'application dans Claude). Saisir les résultats manuellement ci-dessous.'); return; }
+ if(!SAMPLE) return readPhotosLocal(files);
  photoMsg('<span class="spin"></span> Lecture de '+files.length+' image(s) par Claude… (ne pas quitter la page)');
  try{
   const lim = SAMPLE.limits? await SAMPLE.limits() : {images:true};
-  if(!lim || !lim.images){ msg.textContent='Les images ne sont pas disponibles pour cette page.'; return; }
+  if(!lim || !lim.images) return readPhotosLocal(files);
   const blobs = await Promise.all(files.map(shrink));
   const drugList = window.DRUGS.map(d=>`${d.id}=${d.name}`).join('; ');
   const germList = window.GERMS.map(g=>`${g.id}=${g.name}`).join('; ');
@@ -600,20 +616,39 @@ Liste des molécules (id=nom) : ${drugList}`;
   let out;
   try{ out = await SAMPLE.json(prompt, {images:blobs, modelTier:'complex'}); }
   catch(e){ const r = await SAMPLE(prompt, {images:blobs, modelTier:'complex'}); const t=(r&&r.text)||''; out = JSON.parse(t.slice(t.indexOf('{'), t.lastIndexOf('}')+1)); }
-  const isos = (out && out.isolates)||[];
-  let n=0;
-  isos.forEach(x=>{
-   const gid = (x.germ_id && G[x.germ_id])? x.germ_id : window.matchGerm(x.organism||'');
-   const ast={}; (x.results||[]).forEach(r=>{ const id=(r.drug_id && D[r.drug_id])? r.drug_id : window.matchDrug(r.antibiotic||''); if(id && ['S','SFP','R','I'].includes(r.sir)) ast[id] = r.sir==='I'?'SFP':r.sir; });
-   const ph = x.phenotype||{}; if(ast.cloxa && ph.mr==null) ph.mr = ast.cloxa==='R';
-   AB.isolates.push({germ:gid||'', ast, ph:{mr:!!ph.mr, blse:!!ph.blse, ampc:!!ph.ampc, carba:ph.carba||null}, raw:(x.organism||'')+(x.specimen?' — '+x.specimen:'')+(x.comments?' — '+x.comments:''), src:'photo'});
-   n++;
-  });
-  PHOTO.msg = n? `✅ ${n} isolat(s) transcrit(s) — <b>vérifiez chaque ligne avant d'utiliser les propositions</b>.` : 'Aucun isolat reconnu : réessayer avec une photo plus nette (bien à plat, sans reflet) ou saisir manuellement.';
+  const n = addIsolates((out && out.isolates)||[], 'photo');
+  PHOTO.msg = n? `✅ ${n} isolat(s) transcrit(s) par Claude — <b>vérifiez chaque ligne avant d'utiliser les propositions</b>.` : 'Aucun isolat reconnu : réessayer avec une photo plus nette (bien à plat, sans reflet) ou saisir manuellement.';
   saveAB(); render();
  }catch(e){
-  photoMsg(e && e.code==='not_granted' ? 'Autorisation refusée : la lecture photo nécessite d\'accepter la demande de Claude. Saisie manuelle possible.' : e && e.code==='rate_limited' ? 'Trop de requêtes : réessayer dans un instant.' : 'Échec de la lecture : réessayer ou saisir manuellement ('+esc(String((e&&e.message)||e))+').');
+  if(e && e.code==='not_granted'){ photoMsg('Autorisation Claude refusée : lecture sur l\'appareil à la place…'); }
+  return readPhotosLocal(files);
  }
+}
+function addIsolates(isos, src){
+ let n=0;
+ isos.forEach(x=>{
+  const gid = (x.germ_id && G[x.germ_id])? x.germ_id : window.matchGerm(x.organism||'');
+  const ast={}; (x.results||[]).forEach(r=>{ const id=(r.drug_id && D[r.drug_id])? r.drug_id : window.matchDrug(r.antibiotic||''); if(id && ['S','SFP','R','I'].includes(r.sir)) ast[id] = r.sir==='I'?'SFP':r.sir; });
+  const ph = x.phenotype||{}; if(ast.cloxa && ph.mr==null) ph.mr = ast.cloxa==='R';
+  if(!gid && !Object.keys(ast).length) return;
+  AB.isolates.push({germ:gid||'', ast, ph:{mr:!!ph.mr, blse:!!ph.blse, ampc:!!ph.ampc, carba:ph.carba||null}, raw:(x.organism||'')+(x.specimen?' — '+x.specimen:'')+(x.comments?' — '+x.comments:''), src});
+  n++;
+ });
+ return n;
+}
+const OCRTXT = s => s? `<details class="ocrtxt"><summary>Texte lu sur la photo</summary><pre>${esc(s.slice(0,6000))}</pre></details>` : '';
+async function readPhotosLocal(files){
+ if(!window.OCR){ photoMsg('Module de lecture absent : saisir manuellement.'); return; }
+ photoMsg('<span class="spin"></span> Lecture sur le téléphone (la photo ne quitte pas l\'appareil)…');
+ try{
+  const text = await window.OCR.recognize(files, m=>photoMsg('<span class="spin"></span> '+esc(m)));
+  const r = window.OCR.parseABG(text);
+  const n = addIsolates(r.isolates, 'ocr');
+  const nres = r.isolates.reduce((a,x)=>a+x.results.length,0);
+  PHOTO.msg = (n? `✅ Lecture sur l'appareil : ${n} isolat(s), ${nres} résultat(s) reconnu(s)${r.ambig?` — ${r.ambig} ligne(s) non attribuée(s)`:''}. <b>Vérifiez chaque ligne et complétez</b> (germe, phénotype, molécules manquantes).`
+    : 'Lecture sur l\'appareil : aucun résultat reconnu. Photo bien à plat, nette, cadrée sur le tableau, sans reflet — ou saisie manuelle ci-dessous.') + OCRTXT(text);
+  saveAB(); render();
+ }catch(e){ photoMsg('Échec de la lecture sur l\'appareil ('+esc(String((e&&e.message)||e))+'). Saisie manuelle ci-dessous.'); }
 }
 
 /* ---------- recherche globale ---------- */

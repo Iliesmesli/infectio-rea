@@ -380,7 +380,7 @@ const SITE_PREF = {
  temo:{pulm:25},
  ertapeneme:{snc:40},
  cotrimox:{pulm:10},
- dapto:{endo:-5, bact:-5, snc:40, abces:40}
+ dapto:{endo:-40, bact:-40, kt:-25, snc:40, abces:40}
 };
 function evaluate(iso, sites, pat, opts={}){
  const germ = G[iso.germ]; if(!germ) return {error:'Germe non reconnu'};
