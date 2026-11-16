@@ -18,7 +18,8 @@ const saveAB=()=>store.set('abg',AB);
 /* ---------- glossaire : acronymes annotés ---------- */
 const GL = window.GLOSS||{};
 const NOANN = new Set(['Se','Sp']);
-const GKEYS = Object.keys(GL).filter(k=>k.length>=2 && !NOANN.has(k)).sort((a,b)=>b.length-a.length);
+const FT = window.FDR_TERMS||{};
+const GKEYS = [...new Set([...Object.keys(GL).filter(k=>k.length>=2 && !NOANN.has(k)), ...Object.keys(FT)])].sort((a,b)=>b.length-a.length);
 const GSRC = ('(^|[^A-Za-zÀ-ÿ0-9\\-])(' + GKEYS.map(k=>k.replace(/[.*+?^${}()|[\]\\\/]/g,'\\$&')).join('|') + ')(?![A-Za-zÀ-ÿ0-9])');
 const GRE = new RegExp(GSRC,'g'), GRE1 = new RegExp(GSRC);
 function annotate(root){
@@ -26,10 +27,11 @@ function annotate(root){
  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {acceptNode(n){ let p=n.parentNode; while(p && p!==root){ if(skip.has(p.nodeName)|| (p.classList&&p.classList.contains('noabbr'))) return NodeFilter.FILTER_REJECT; p=p.parentNode; } return GRE1.test(n.nodeValue)? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT; }});
  const nodes=[]; let n; while((n=walker.nextNode())) nodes.push(n);
  nodes.forEach(t=>{ GRE.lastIndex=0; const frag=document.createDocumentFragment(); let last=0, m; const v=t.nodeValue;
-   while((m=GRE.exec(v))){ const start=m.index+m[1].length; frag.append(v.slice(last,start)); const a=document.createElement('abbr'); a.textContent=m[2]; a.title=GL[m[2]]; a.dataset.g=m[2]; frag.append(a); last=start+m[2].length; }
-   frag.append(v.slice(last)); const w=document.createElement('span'); w.className='gw'; w.append(frag); t.parentNode.replaceChild(w,t); });
+   while((m=GRE.exec(v))){ const start=m.index+m[1].length; frag.append(v.slice(last,start)); const a=document.createElement('abbr'); a.textContent=m[2]; const inF=!!(t.parentNode.closest&&t.parentNode.closest('.fdrbox,summary,h2,h3,.tile b')); if(!GL[m[2]] && inF){ frag.append(m[2]); last=start+m[2].length; continue; } if(GL[m[2]]) a.title=GL[m[2]]; a.dataset.g=m[2]; if(FT[m[2]] && !inF){ a.dataset.f=FT[m[2]]; a.className='fdr'; } frag.append(a); last=start+m[2].length; }
+   frag.append(v.slice(last)); const w=document.createElement('x-g'); w.append(frag); t.parentNode.replaceChild(w,t); });
 }
-function gpop(e){ const a=e.target.closest('abbr[data-g]'); const pop=$('#gpop'); if(!a){ if(!e.target.closest('#gpop')) pop.hidden=true; return; } e.preventDefault(); pop.innerHTML=`<b>${esc(a.dataset.g)}</b> : ${esc(GL[a.dataset.g])}`; pop.hidden=false; }
+function gpop(e){ const pop=$('#gpop'); if(e.target.closest('#gpop .popx') || e.target.closest('#gpop a')){ pop.hidden=true; if(e.target.closest('.popx')) return; } const a=e.target.closest('abbr[data-g]'); if(!a){ if(!e.target.closest('#gpop')) pop.hidden=true; return; } e.preventDefault(); pop.innerHTML=(GL[a.dataset.g]?`<b>${esc(a.dataset.g)}</b> : ${esc(GL[a.dataset.g])}`:'')+(a.dataset.f?fdrHTML(a.dataset.f,true):'')+'<button type="button" class="popx" aria-label="Fermer">✕</button>'; pop.hidden=false; pop.scrollTop=0; }
+function fdrHTML(k,inPop){ const F=(window.FDR||{})[k]; if(!F) return ''; return `<div class="fdrbox"><div class="fdrt">⚑ ${F.t}</div>${F.blocks.map(b=>`<div class="fdrb"><div class="fdrc">${b.ctx}${b.s==='NAR'?' <span class="tag tnar">NAR</span>':(R[b.s]?` <a class="ref ${R[b.s].lvl}" href="${esc(R[b.s].u)}" target="_blank" rel="noopener">${esc(R[b.s].s.split(' — ')[0].replace(/\s*\(.*?\)/g,'').slice(0,30))}</a>`:'')}</div><ul>${b.items.map(i=>`<li>${i}</li>`).join('')}</ul>${b.note?`<div class="muted small">${b.note}</div>`:''}</div>`).join('')}${inPop?`<div class="fdrl">${F.germ?`<a href="#g-${F.germ}">Fiche germe →</a> · `:''}<a href="#hygiene:fdr">Tous les FdR (Hygiène) →</a></div>`:''}</div>`; }
 
 /* ---------- références ---------- */
 function refChips(ids){ if(!ids||!ids.length) return ''; return '<div class="refs">'+ids.filter(i=>R[i]).map(i=>`<a class="ref ${R[i].lvl}" href="${esc(R[i].u)}" target="_blank" rel="noopener" title="${esc(R[i].t)}">${esc(R[i].s.split(' — ')[0].replace(/\s*\(.*?\)/g,'').slice(0,34))}</a>`).join('')+'</div>'; }
@@ -160,7 +162,7 @@ function viewMolecules(){
 
 function survHTML(id){
  const S=(window.SURV||{})[id]; if(!S||!S.length) return '';
- return `<details class="sec" id="s-surv" open><summary><span class="ico">🩺</span>Surveillance / particularités</summary><div class="secbody"><div class="survlist">${S.map(x=>`<div class="survit"><div class="survq">${x.q}${x.s==='NAR'?' <span class="tag tnar">NAR</span>':''}</div><div class="survf"><b>Quand</b> : ${x.f}</div><div class="survw"><b>Pourquoi</b> : ${x.w}</div>${x.s!=='NAR'&&R[x.s]?`<div class="survs"><a class="ref ${R[x.s].lvl}" href="${esc(R[x.s].u)}" target="_blank" rel="noopener">${esc(R[x.s].s.split(' — ')[0].replace(/\s*\(.*?\)/g,'').slice(0,40))}</a></div>`:''}</div>`).join('')}</div><p class="muted small">« Non fixée par le RCP » : le RCP demande la surveillance sans en préciser le rythme.</p></div></details>`;
+ return `<details class="sec" id="s-surv" open><summary><span class="ico">🩺</span>Surveillance / particularités</summary><div class="secbody"><div class="survlist">${S.map(x=>`<div class="survit"><div class="survq">${x.q}${x.s==='NAR'?' <span class="tag tnar">NAR</span>':''}</div><div class="survf"><b>Quand</b> : ${x.f}</div><div class="survw"><b>Pourquoi</b> : ${x.w}${/neurolog/i.test(x.q)?' <a href="#pkpd:neurotox">→ chapitre encéphalopathie</a>':''}</div>${x.s!=='NAR'&&R[x.s]?`<div class="survs"><a class="ref ${R[x.s].lvl}" href="${esc(R[x.s].u)}" target="_blank" rel="noopener">${esc(R[x.s].s.split(' — ')[0].replace(/\s*\(.*?\)/g,'').slice(0,40))}</a></div>`:''}</div>`).join('')}</div><p class="muted small">« Non fixée par le RCP » : le RCP demande la surveillance sans en préciser le rythme.</p></div></details>`;
 }
 function viewMolecule(id){
  window.__SITES=[]; window.__GERM="";
@@ -217,6 +219,7 @@ function viewGerm(id){
  return `<section class="card"><a class="back" href="#germes">← Germes</a><h2>${esc(g.name)} <small class="muted">${esc(g.cat)}</small></h2>
  ${secs([
   {id:'s-hier', ico:'🏆', t:'Traitement hiérarchisé', raw:true, html:hierHTML(g.id), open:true},
+  ...(['saureus','strepA'].includes(g.id)?[{id:'s-atx', ico:'🧪', t:'Formes toxiniques', raw:true, html:'<p>Choc toxique, DHBN, pneumonie nécrosante à S. aureus PVL : voir la fiche <a href="#p-antitox">Antibiothérapie antitoxinique (puissance comparée)</a>.</p>', open:true}]:[]),
   {id:'s-fr', ico:'📊', t:'Résistances en France (%)', raw:true, html:epiTable(((window.EPIFR||{}).germ||{})[g.id],'Antibiotique (% résistant)')+(((window.EPIFR||{}).germ||{})[g.id]?'<p class="muted small">% de souches résistantes sauf mention ; sources françaises (EARS-Net France = hémocultures/LCS ; REA-REZO = infections acquises en réanimation ; PRIMO = ville/Ehpad). L\'écologie locale prime.</p>':'')},
   {id:'s-ttt', ico:'💊', t:(window.HIER&&window.HIER[g.id])?'Commentaires thérapeutiques':'Traitement', html:g.ttt, open:!(window.HIER&&window.HIER[g.id])},
   {id:'s-tips', ico:'💡', t:'À savoir', html:g.tips, open:true},
@@ -415,7 +418,7 @@ function bindABP(root){
 /* ---------- PATHOLOGIES ---------- */
 function viewPathos(){
  const groups={}; window.PATHO.forEach(p=>{(groups[p.cat]=groups[p.cat]||[]).push(p);});
- return `<section class="card">${Object.entries(groups).map(([c,ps])=>`<h3 class="grp">${esc(c)}</h3><div class="tiles">${ps.map(p=>`<a class="tile" href="#p-${p.id}"><b>${esc(p.name)}</b><span>${esc(p.duree).replace(/<[^>]+>/g,'').slice(0,90)}</span></a>`).join('')}</div>`).join('')}</section>`;
+ return `<section class="card">${Object.entries(groups).map(([c,ps])=>`<h3 class="grp">${esc(c)}</h3><div class="tiles">${ps.map(p=>`<a class="tile" href="#p-${p.id}"><b>${esc(p.name)}</b><span>${esc(String(p.duree).replace(/<[^>]+>/g,'').slice(0,90))}</span></a>`).join('')}${c==='Transversal'?`<a class="tile" href="#pkpd:neurotox"><b>Encéphalopathie aux β-lactamines (neurotoxicité)</b><span>Chapitre de l'onglet PK/PD & STP</span></a>`:''}</div>`).join('')}</section>`;
 }
 function viewPatho(id){
  const p=window.PATHO.find(x=>x.id===id); if(!p) return '<p>Introuvable.</p>';
@@ -515,6 +518,33 @@ function viewPKPD(){
  <h3>6. Quand demander un STP ?</h3>
  <p>Hyperclairance, EER/ECMO, obésité, CMI élevée ou BGN non fermentant, infection du SNC/endocardite/os, échec clinique, toxicité suspectée (neurologique : céfépime, pipéracilline, méropénème, imipénème), molécule à marge étroite (aminosides, vancomycine, linézolide, voriconazole).</p>
  ${refChips(['sfar_bl2019','doses25','spilf_perf25','ansm_amino11','vanco20','colis19','goutelle23','abxbmi'])}
+ <h3 id="neurotox">7. Encéphalopathie (neurotoxicité) aux β-lactamines</h3>
+ <div class="narbox"><b>Protocole NAR</b> : céfépime à dose méningée → <b>dosage systématique à 48 h ± EEG</b> ; PAVM tardive : céfépime possible « en faisant attention au risque d'encéphalopathie ».</div>
+ <p><b>Mécanisme</b> : antagonisme GABA-A dépendant de la concentration (céfépime : passage de la barrière hémato-encéphalique).</p>
+ <p><b>Présentation</b> (revue systématique des neurotoxicités du céfépime) :</p>
+ <ul class="pts">
+  <li>Toujours une altération de l'état mental : baisse de vigilance (47 %), myoclonies (42 %), confusion (42 %).</li>
+  <li>EEG anormal chez tous les patients explorés : ondes triphasiques (40 %), pointes focales (39 %), <b>état de mal non convulsif (25 %)</b>, état de mal myoclonique (7 %).</li>
+  <li>Début médian <b>4 jours</b> après l'introduction ; <b>résolution médiane en 2 jours</b> après l'intervention.</li>
+  <li>48 % des patients étaient surdosés pour leur fonction rénale, mais <b>26 % ont fait une neurotoxicité malgré une posologie adaptée</b>.</li>
+  <li>Diagnostic difficile en réanimation : symptômes variés et fréquents chez ces patients (a fortiori chez le cérébrolésé).</li>
+ </ul>
+ <p><b>Facteur de risque principal</b> : <b>insuffisance rénale</b>, surtout si la dose n'est pas réduite.</p>
+ <p><b>Concentrations associées à la neurotoxicité</b> (résiduelles, études observationnelles) :</p>
+ <table class="tbl"><tr><th>Molécule</th><th>Seuil associé</th><th>Source</th></tr>
+ <tr><td>Céfépime</td><td>Cmin ≥ 22 mg/L : 50 % de probabilité de neurotoxicité</td><td>Lamoth 2010 (neutropéniques fébriles, IR légère)</td></tr>
+ <tr><td>Céfépime</td><td>Cmin > 20 mg/L ; Css > 60 mg/L (perfusion continue)</td><td>Revue STP 2024</td></tr>
+ <tr><td>Pipéracilline</td><td>Cmin > 361,4 mg/L : 50 % de risque</td><td>Imani 2017</td></tr>
+ <tr><td>Méropénème</td><td>Cmin > 64,2 mg/L : 50 % de risque</td><td>Imani 2017</td></tr>
+ <tr><td>Flucloxacilline (≈ cloxacilline)</td><td>Cmin > 125,1 mg/L : 50 % de risque</td><td>Imani 2017</td></tr></table>
+ <p><b>Conduite à tenir</b> :</p>
+ <ul class="pts">
+  <li>Évoquer le diagnostic devant toute dégradation neurologique inexpliquée sous β-lactamine (vigilance, myoclonies, crises) : <b>dosage (STP) et EEG</b>.</li>
+  <li>Interventions rapportées : <b>arrêt ou changement de molécule</b>, réduction de dose, <b>antiépileptique</b> (benzodiazépine) si état de mal, <b>hémodialyse</b> (céfépime) dans les formes graves avec insuffisance rénale.</li>
+  <li>Prévention : adapter à la fonction rénale (y compris à la récupération d'une IRA), STP chez les patients à risque (SFAR/SFPT 2019 : STP en cas de toxicité suspectée).</li>
+  <li>Imipénème : abaisse le seuil épileptogène (RCP) ; méropénème, céfépime, ceftazidime, pipéracilline et imipénème sont listés parmi les molécules justifiant un STP pour toxicité neurologique (section 6).</li>
+ </ul>
+ ${refChips(['nar25','payne17','lamoth10','imani17','ckj_tdm24','sfar_bl2019'])}
  </section>`;
 }
 /* ---------- RÉFÉRENCES ---------- */
@@ -528,7 +558,7 @@ function viewRefs(){
 }
 
 /* ---------- ANTIBIOGRAMME ---------- */
-const APP_VERSION='1.16';
+const APP_VERSION='1.17';
 let SAMPLE = null, sampleImages=false;
 const PHOTO = {msg:'', thumbs:[]}; let PHOTO_TARGET='abg';
 function photoMsg(h){ PHOTO.msg=h; const m=document.getElementById('photomsg'); if(m) m.innerHTML=h; }
@@ -852,10 +882,11 @@ function viewHygiene(){
   {id:'h-iso', ico:'🚪', t:'Isolements : niveaux de précautions', html:H.niveaux, open:true},
   {id:'h-tab', ico:'📋', t:'Isolement selon le micro-organisme', raw:true, html:`<div class="tblwrap">${tbl}</div>`, open:true},
   {id:'h-bhre', ico:'🌍', t:'BMR / BHRe, dépistage et séjour à l\'étranger', raw:true, html:`<p>Règles générales (HCSP 2019 : dépistage BHRe de tout patient hospitalisé ≥ 24 h à l'étranger dans l'année, précautions jusqu'aux résultats) et préconisations par pays et par situation :</p><p><a class="btn" href="#pays">🌍 BMR/BHRe par pays</a> <a class="btn" href="#e-depistage">🧪 Dépistage BMR/BHRe</a></p>`},
+  {id:'fdr', ico:'⚑', t:'Facteurs de risque de BMR / BHRe (et autres germes à couvrir)', raw:true, html:`<p class="muted small">Les mêmes listes s\'affichent en touchant SARM, BLSE, P. aeruginosa, BHRe ou candidose (repérés par ⚑) dans les fiches.</p>${['bhre','blse','sarm','pyo','candida'].map(k=>fdrHTML(k,false)+((window.FDR[k]||{}).germ?`<p class="small"><a href="#g-${window.FDR[k].germ}">Fiche germe →</a></p>`:'')).join('')}`, open:true},
   {id:'h-mso', ico:'📣', t:'Maladies à signalement obligatoire (MSO, ex-MDO)', raw:true, html:`<div class="narbox">${fmtText(H.msoHow)}</div><div class="toolbar"><input type="search" id="msoq" placeholder="Filtrer (ex. méningocoque, légionellose…)" value="${esc(MSOQ)}"></div><div id="msolist">${msoRows(MSOQ)}</div>`, open:true},
   {id:'h-ias', ico:'🏥', t:'Signalement des infections associées aux soins (e-SIN), cas groupés, AES', html:H.ias}
  ])}
- <h3>Références</h3>${refList(['sf2h_ps17','sf2h_pcc09','sf2h_resp24','sf2h_resp_faq25','hcsp_bhre19','nar25','spf_mso26','ars_na_mdo','dgs_iim18','corruss_iim25'])}</section>`;
+ <h3>Références</h3>${refList(['sf2h_ps17','sf2h_pcc09','sf2h_resp24','sf2h_resp_faq25','hcsp_bhre19','nar25','spf_mso26','ars_na_mdo','dgs_iim18','corruss_iim25','spilf_recos','sfar_pavm17','spilf_pac25','has_carba19'])}</section>`;
 }
 /* ---------- VACCINS ---------- */
 function viewVaccins(){
@@ -891,7 +922,7 @@ function searchAll(q){
 const TABS = [['antibiogramme','Antibiogramme'],['molecules','Anti-infectieux'],['pkpd','PK/PD & STP'],['germes','Germes'],['pathologies','Pathologies'],['examens','Examens'],['bio','Résultats bio 📷'],['antibioprophylaxie','Antibioprophylaxie'],['hygiene','Hygiène & signalement'],['vaccins','Vaccins'],['patient','Patient'],['references','Références']];
 function route(){ return (location.hash||'#antibiogramme').slice(1); }
 function render(){
- const r = route(); const main=$('#main');
+ let r = route(); const main=$('#main'); let anchor=''; if(r.includes(':')){ [r,anchor]=r.split(':'); }
  let html='', tab=r;
  if(r.startsWith('m-')){ html=viewMolecule(r.slice(2)); tab='molecules'; }
  else if(r.startsWith('g-')){ html=viewGerm(r.slice(2)); tab='germes'; }
@@ -903,7 +934,7 @@ function render(){
  else if(r==='vaccins'){ html=viewVaccins(); }
  else html = ({antibiogramme:viewABG, molecules:viewMolecules, pkpd:viewPKPD, germes:viewGerms, pathologies:viewPathos, examens:viewExams, antibioprophylaxie:viewABP, bio:viewBIO, patient:viewPatient, references:viewRefs}[r]||viewABG)();
  $$('#tabs a').forEach(a=>a.classList.toggle('on', a.getAttribute('href')==='#'+tab));
- main.innerHTML = html;
+ main.innerHTML = html; { const gp=$('#gpop'); if(gp) gp.hidden=true; }
  main.querySelectorAll('table').forEach(t=>{
    if(!t.parentElement.classList.contains('tblwrap')){ const w=document.createElement('div'); w.className='tblwrap'; t.parentNode.insertBefore(w,t); w.appendChild(t); }
    const rows=[...t.rows]; if(!rows.length) return; const head=[...rows[0].cells];
@@ -920,6 +951,7 @@ function render(){
  $$('[data-newiso]',main).forEach(b=>b.onclick=()=>{ AB.isolates.push({germ:b.dataset.newiso, ast:{}, ph:{}}); saveAB(); location.hash='#antibiogramme'; });
  $$('[data-site]',main).forEach(b=>b.onclick=()=>{ const s=b.dataset.site; if(!AB.sites.includes(s)) AB.sites.push(s); saveAB(); location.hash='#antibiogramme'; });
  renderPatientChip();
+ if(anchor){ const el=document.getElementById(anchor); if(el){ if(el.tagName==='DETAILS') el.open=true; setTimeout(()=>el.scrollIntoView({block:'start'}),30); } }
 }
 function init(){
  $('#tabs').innerHTML = TABS.map(([k,l])=>`<a href="#${k}">${l}</a>`).join('');

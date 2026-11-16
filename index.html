@@ -128,6 +128,9 @@ details.excl summary,details.more summary{cursor:pointer;color:var(--muted)}
 .spin{display:inline-block;width:12px;height:12px;border:2px solid var(--line);border-top-color:var(--pri);border-radius:50%;animation:s 1s linear infinite;vertical-align:-1px}
 @keyframes s{to{transform:rotate(360deg)}}
 abbr[data-g]{text-decoration:underline dotted;text-underline-offset:2px;cursor:help}
+abbr.fdr{text-decoration:underline dashed #d08a00;text-decoration-thickness:1.5px;cursor:pointer} abbr.fdr::after{content:'⚑';display:inline-block;font-size:.7em;color:#d08a00;margin-left:1px;vertical-align:super;text-decoration:none}
+#gpop{max-height:70vh;overflow:auto;padding-right:34px;width:min(560px,92vw);box-sizing:border-box} #gpop .popx{position:absolute;top:6px;right:8px;background:none;border:0;color:inherit;font-size:18px;cursor:pointer}
+.fdrbox{margin-top:6px} .fdrt{font-weight:700;margin-bottom:4px} .fdrb{margin:6px 0} .fdrc{font-weight:600;font-size:.95em} .fdrb ul{margin:3px 0 3px 18px;padding:0} .fdrl{margin-top:8px} #gpop a{color:inherit;text-decoration:underline} x-g{display:inline}
 #gpop{position:fixed;left:50%;transform:translateX(-50%);bottom:18px;z-index:50;max-width:min(560px,92vw);background:var(--ink);color:var(--card);padding:10px 14px;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.25);font-size:14px}
 dl.gloss{display:grid;grid-template-columns:140px 1fr;gap:4px 14px;font-size:14px} dl.gloss dt{font-weight:700;color:var(--pri)} dl.gloss dd{margin:0}
 @media (max-width:640px){dl.gloss{grid-template-columns:100px 1fr}}
@@ -214,26 +217,27 @@ ul.pts.auto li{margin:3px 0} span.gw{display:inline}
  <div class="brand-badge" title="CHU de Bordeaux"><img src="chu-bordeaux.jpg" alt="Logo CHU de Bordeaux"></div>
  <div class="brand-badge" title="Infectio Réa"><img src="icon-192.png" alt="Logo Infectio Réa"></div>
 </div>
-<footer>Aide à la décision pour cliniciens de réanimation — ne remplace ni l'avis infectiologique/pharmacologique, ni les protocoles locaux, ni les RCP. Posologies pour l'adulte. Références : SFAR/SRLF, SPILF/HAS, CA-SFM 2025, ePOPI, GPR, abxbmi, ESCMID, IDSA (onglet Références). Version 1.16 du 16/11/2026 · <a href="#" id="forceupd">🔄 Mettre à jour</a>.</footer>
-<script src="js/refs.js?v=1.16"></script>
-<script src="js/glossary.js?v=1.16"></script>
-<script src="js/drugs_ab.js?v=1.16"></script>
-<script src="js/drugs_af_av.js?v=1.16"></script>
-<script src="js/germs.js?v=1.16"></script>
-<script src="js/patho.js?v=1.16"></script>
-<script src="js/exams.js?v=1.16"></script>
-<script src="js/abp.js?v=1.16"></script>
-<script src="js/bio.js?v=1.16"></script>
-<script src="js/ocr.js?v=1.16"></script>
-<script src="js/pays.js?v=1.16"></script>
-<script src="js/hier.js?v=1.16"></script>
-<script src="js/nar.js?v=1.16"></script>
-<script src="js/epifr.js?v=1.16"></script>
-<script src="js/annexe.js?v=1.16"></script>
-<script src="js/surv.js?v=1.16"></script>
-<script src="js/hygiene.js?v=1.16"></script>
-<script src="js/vaccins.js?v=1.16"></script>
-<script src="js/engine.js?v=1.16"></script>
-<script src="js/app.js?v=1.16"></script>
+<footer>Aide à la décision pour cliniciens de réanimation — ne remplace ni l'avis infectiologique/pharmacologique, ni les protocoles locaux, ni les RCP. Posologies pour l'adulte. Références : SFAR/SRLF, SPILF/HAS, CA-SFM 2025, ePOPI, GPR, abxbmi, ESCMID, IDSA (onglet Références). Version 1.17 du 16/11/2026 · <a href="#" id="forceupd">🔄 Mettre à jour</a>.</footer>
+<script src="js/refs.js?v=1.17"></script>
+<script src="js/glossary.js?v=1.17"></script>
+<script src="js/drugs_ab.js?v=1.17"></script>
+<script src="js/drugs_af_av.js?v=1.17"></script>
+<script src="js/germs.js?v=1.17"></script>
+<script src="js/patho.js?v=1.17"></script>
+<script src="js/exams.js?v=1.17"></script>
+<script src="js/abp.js?v=1.17"></script>
+<script src="js/bio.js?v=1.17"></script>
+<script src="js/ocr.js?v=1.17"></script>
+<script src="js/pays.js?v=1.17"></script>
+<script src="js/hier.js?v=1.17"></script>
+<script src="js/nar.js?v=1.17"></script>
+<script src="js/epifr.js?v=1.17"></script>
+<script src="js/annexe.js?v=1.17"></script>
+<script src="js/surv.js?v=1.17"></script>
+<script src="js/fdr.js?v=1.17"></script>
+<script src="js/hygiene.js?v=1.17"></script>
+<script src="js/vaccins.js?v=1.17"></script>
+<script src="js/engine.js?v=1.17"></script>
+<script src="js/app.js?v=1.17"></script>
 </body>
 </html>
