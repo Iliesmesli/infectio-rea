@@ -532,6 +532,7 @@ function viewTox(){
  const S=window.SURV||{};
  const idx=window.DRUGS.filter(d=>S[d.id]).map(d=>`<tr><td><a href="#m-${d.id}:s-surv">${esc(d.name)}</a></td><td>${S[d.id].map(x=>x.q.replace(/<[^>]+>/g,'')).join(' · ')}</td></tr>`).join('');
  return pharmaShell('tox', `<h2>Toxicités des anti-infectieux et surveillance</h2>
+ <div class="transv"><b>Sommaire</b> : <a href="#pharmaco-tox:neurotox">1. Encéphalopathie β-lactamines</a> · <a href="#pharmaco-tox:nephro">2. Vanco + pip-tazo</a> · <a href="#pharmaco-tox:lzdmyelo">3. Linézolide</a> · <a href="#pharmaco-tox:amino">4. Aminosides</a> · <a href="#pharmaco-tox:polymyx">5. Polymyxines</a> · <a href="#pharmaco-tox:interneuro">6. Interactions neuroréa</a> · <a href="#pharmaco-tox:seuils">7. Seuils</a> · <a href="#pharmaco-tox:survidx">8. Index surveillance</a></div>
  <h3 id="neurotox">1. Encéphalopathie (neurotoxicité) aux β-lactamines</h3>
  <div class="narbox"><b>Protocole NAR</b> : céfépime à dose méningée → <b>dosage systématique à 48 h ± EEG</b> ; PAVM tardive : céfépime possible « en faisant attention au risque d'encéphalopathie ».</div>
  <p><b>Mécanisme</b> : antagonisme GABA-A dépendant de la concentration (céfépime : passage de la barrière hémato-encéphalique).</p>
@@ -560,7 +561,47 @@ function viewTox(){
  </ul>
  ${refChips(['nar25','payne17','lamoth10','imani17','ckj_tdm24','sfar_bl2019'])}
 
- <h3 id="seuils">2. Seuils de concentration associés à une toxicité (autres classes)</h3>
+
+ <h3 id="nephro">2. Néphrotoxicité : vancomycine + pipéracilline-tazobactam</h3>
+ <ul class="pts">
+  <li><b>Méta-analyse (≈ 24 800 patients)</b> : IRA chez 22,2 % sous vancomycine + pip-tazo contre 12,9 % sous comparateurs (nombre de patients à traiter pour un effet néfaste : 11). OR 3,40 contre vancomycine seule ; OR 2,68 contre vancomycine + céfépime ou carbapénème.</li>
+  <li><b>Chez les patients de réanimation</b> (sous-analyse, 968 patients) : pas de différence significative contre vancomycine + céfépime/carbapénème (OR 1,43 ; IC 95 % 0,83–2,47).</li>
+  <li><b>Essai randomisé ACORN</b> (2 511 adultes, céfépime contre pip-tazo, 2023) : pas de différence sur l'IRA stade 3 ou le décès à J14, mais <b>plus de dysfonction neurologique sous céfépime</b> — argument à peser en neuroréanimation.</li>
+  <li>Pratique : surveiller la créatinine et la vancocinémie (cibles du service), limiter la durée de l'association (désescalade à 48–72 h).</li>
+ </ul>
+ ${refChips(['luther18','acorn23','nar25'])}
+ <h3 id="lzdmyelo">3. Myélotoxicité du linézolide</h3>
+ <ul class="pts">
+  <li>Surveillance : <b>NFS 2 fois par semaine</b> (protocole NAR) ; RCP : 1 fois par semaine pour tous, plus étroite si cytopénie préexistante, insuffisance rénale sévère ou traitement > 10–14 jours.</li>
+  <li><b>Concentrations</b> : une résiduelle > 7–8 mg/L est régulièrement associée à la thrombopénie ; cible de résiduelle proposée <b>2–8 mg/L</b>.</li>
+  <li>Facteurs de risque indépendants dans une cohorte : <b>durée ≥ 10 jours</b> et <b>résiduelle > 8 mg/L</b>, les résiduelles élevées étant liées à l'insuffisance rénale.</li>
+  <li>Au-delà de 28 jours : neuropathie optique et périphérique (surveillance de la vision, RCP).</li>
+ </ul>
+ ${refChips(['nar25','rcp_linez','crass19','lzd_front24'])}
+ <h3 id="amino">4. Aminosides : néphro- et ototoxicité</h3>
+ <ul class="pts">
+  <li><b>Dose unique journalière</b> en perfusion de 30 min, durée <b>≤ 5 jours</b>, arrêt le plus souvent après 48–72 h (ANSM 2011).</li>
+  <li>Les risques de toxicité rénale et auditive <b>augmentent fortement au-delà de 5–7 jours</b> (ANSM 2011).</li>
+  <li>Résiduelle : si traitement > 5 jours (dosage après 48 h) ou insuffisance rénale (RCP gentamicine). Cibles du service : voir les fiches amikacine et gentamicine.</li>
+  <li><b>Prédisposition génétique</b> : les variants mitochondriaux MT-RNR1 (m.1555A>G, m.1095T>C, m.1494C>T) exposent à une surdité après une seule dose. Recommandation CPIC 2021 : éviter les aminosides chez les porteurs connus, sauf si la gravité de l'infection l'emporte et en l'absence d'alternative. Rechercher un antécédent familial de surdité après aminoside.</li>
+ </ul>
+ ${refChips(['ansm_amino11','ansm_amino_ville11','rcp_genta','cpic_rnr1'])}
+ <h3 id="polymyx">5. Polymyxines (colistine)</h3>
+ <ul class="pts">
+  <li>Néphrotoxicité dépendante de l'exposition : au-delà de la cible de concentration moyenne à l'équilibre (≈ 2 mg/L), <b>l'incidence et la sévérité de l'IRA augmentent</b> ; ces expositions sont considérées comme les maximales tolérables (consensus international 2019).</li>
+  <li>La polymyxine B a une moindre néphrotoxicité potentielle (même consensus).</li>
+  <li>Surveillance : fonction rénale au début puis régulièrement (RCP) ; neurotoxicité (paresthésies, blocage neuromusculaire, apnée).</li>
+ </ul>
+ ${refChips(['colis19','rcp_colis'])}
+ <h3 id="interneuro">6. Interactions critiques en neuroréanimation</h3>
+ <table class="tbl"><tr><th>Anti-infectieux</th><th>Interaction</th><th>Conséquence / conduite</th></tr>
+ <tr><td>Carbapénèmes (méropénème, imipénème, ertapénème)</td><td>Acide valproïque</td><td>Chute rapide et durable de la valproatémie → crises : association déconseillée, changer d'antiépileptique ou d'antibiotique.</td></tr>
+ <tr><td>Rifampicine</td><td>Nimodipine (contre-indiquée), antiépileptiques, AVK/AOD, voriconazole (contre-indiqué)</td><td>Inducteur puissant ; l'induction persiste ≈ 2 semaines après l'arrêt.</td></tr>
+ <tr><td>Linézolide</td><td>ISRS, IRSNa, opioïdes sérotoninergiques</td><td>Syndrome sérotoninergique (effet IMAO faible) : surveillance étroite si l'association est inévitable.</td></tr>
+ <tr><td>Imipénème, fluoroquinolones, céfépime</td><td>Lésion cérébrale, épilepsie</td><td>Abaissement du seuil épileptogène / neurotoxicité : préférer d'autres molécules si possible.</td></tr>
+ <tr><td>Voriconazole, fluconazole, posaconazole</td><td>Substrats du CYP3A4 (nimodipine, midazolam, tacrolimus…)</td><td>Inhibition enzymatique : majoration des concentrations ; adapter et doser.</td></tr></table>
+ ${refChips(['bdpm','rcp_linez'])}
+ <h3 id="seuils">7. Seuils de concentration associés à une toxicité (autres classes)</h3>
  <table class="tbl"><tr><th>Molécule</th><th>Toxicité</th><th>Seuil rapporté</th></tr>
  <tr><td>Amikacine</td><td>Ototoxicité</td><td>Cmin > 5 mg/L</td></tr>
  <tr><td>Gentamicine, tobramycine</td><td>Ototoxicité</td><td>Cmin > 1 mg/L</td></tr>
@@ -569,7 +610,7 @@ function viewTox(){
  <tr><td>Cotrimoxazole</td><td>Toxicité générale</td><td>Sulfaméthoxazole > 150 mg/L</td></tr></table>
  <p class="muted small">Seuils issus d'une revue (Clin Kidney J 2024, tableau 2). Pour les aminosides, le protocole NAR et l'ANSM retiennent des cibles de vallée plus basses avant réinjection (amikacine < 2,5 mg/L ; gentamicine < 0,5 mg/L) : voir les fiches molécules.</p>
  ${refChips(['ckj_tdm24','ansm_amino11'])}
- <h3 id="survidx">3. Surveillance par molécule (index)</h3>
+ <h3 id="survidx">8. Surveillance par molécule (index)</h3>
  <p class="muted small">Détail (quand, pourquoi, source) dans la rubrique « Surveillance / particularités » de chaque fiche.</p>
  <table class="tbl"><tr><th>Molécule</th><th>À surveiller</th></tr>${idx}</table>`);
 }
@@ -598,7 +639,7 @@ function viewRefs(){
 }
 
 /* ---------- ANTIBIOGRAMME ---------- */
-const APP_VERSION='1.18';
+const APP_VERSION='1.19';
 let SAMPLE = null, sampleImages=false;
 const PHOTO = {msg:'', thumbs:[]}; let PHOTO_TARGET='abg';
 function photoMsg(h){ PHOTO.msg=h; const m=document.getElementById('photomsg'); if(m) m.innerHTML=h; }
