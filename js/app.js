@@ -180,6 +180,7 @@ function viewMolecule(id){
   ${d.dose&&d.dose.po?`<div class="dose"><span class="tag">Voie orale</span> ${esc(d.dose.po)}</div>`:''}
   ${d.dose&&d.dose.other?`<div class="dose">${esc(d.dose.other)}</div>`:''}
  </div>
+ ${['cloxa','cefazoline'].includes(d.id)?'<div class="admin"><b>Cloxacilline ou céfazoline ?</b> <a href="#pharmaco-tox:cfzclox">→ essais CloCeBa et SNAP (efficacité, néphrotoxicité)</a></div>':''}
  ${['clinda','linez','rifam'].includes(d.id)?'<div class="admin"><b>Antitoxinique</b> : <a href="#pharmaco-atx">→ puissance comparée et schémas</a></div>':''}
  ${survHTML(d.id)}
  <dl class="fiche">
@@ -532,7 +533,7 @@ function viewTox(){
  const S=window.SURV||{};
  const idx=window.DRUGS.filter(d=>S[d.id]).map(d=>`<tr><td><a href="#m-${d.id}:s-surv">${esc(d.name)}</a></td><td>${S[d.id].map(x=>x.q.replace(/<[^>]+>/g,'')).join(' · ')}</td></tr>`).join('');
  return pharmaShell('tox', `<h2>Toxicités des anti-infectieux et surveillance</h2>
- <div class="transv"><b>Sommaire</b> : <a href="#pharmaco-tox:neurotox">1. Encéphalopathie β-lactamines</a> · <a href="#pharmaco-tox:nephro">2. Vanco + pip-tazo</a> · <a href="#pharmaco-tox:lzdmyelo">3. Linézolide</a> · <a href="#pharmaco-tox:amino">4. Aminosides</a> · <a href="#pharmaco-tox:polymyx">5. Polymyxines</a> · <a href="#pharmaco-tox:interneuro">6. Interactions neuroréa</a> · <a href="#pharmaco-tox:seuils">7. Seuils</a> · <a href="#pharmaco-tox:survidx">8. Index surveillance</a></div>
+ <div class="transv"><b>Sommaire</b> : <a href="#pharmaco-tox:neurotox">1. Encéphalopathie β-lactamines</a> · <a href="#pharmaco-tox:nephro">2. Néphrotoxicité (vanco + pip-tazo ; cloxa vs céfazoline)</a> · <a href="#pharmaco-tox:lzdmyelo">3. Linézolide</a> · <a href="#pharmaco-tox:amino">4. Aminosides</a> · <a href="#pharmaco-tox:polymyx">5. Polymyxines</a> · <a href="#pharmaco-tox:interneuro">6. Interactions neuroréa</a> · <a href="#pharmaco-tox:seuils">7. Seuils</a> · <a href="#pharmaco-tox:survidx">8. Index surveillance</a></div>
  <h3 id="neurotox">1. Encéphalopathie (neurotoxicité) aux β-lactamines</h3>
  <div class="narbox"><b>Protocole NAR</b> : céfépime à dose méningée → <b>dosage systématique à 48 h ± EEG</b> ; PAVM tardive : céfépime possible « en faisant attention au risque d'encéphalopathie ».</div>
  <p><b>Mécanisme</b> : antagonisme GABA-A dépendant de la concentration (céfépime : passage de la barrière hémato-encéphalique).</p>
@@ -562,7 +563,8 @@ function viewTox(){
  ${refChips(['nar25','payne17','lamoth10','imani17','ckj_tdm24','sfar_bl2019'])}
 
 
- <h3 id="nephro">2. Néphrotoxicité : vancomycine + pipéracilline-tazobactam</h3>
+ <h3 id="nephro">2. Néphrotoxicité</h3>
+ <p><b>2a. Vancomycine + pipéracilline-tazobactam</b></p>
  <ul class="pts">
   <li><b>Méta-analyse (≈ 24 800 patients)</b> : IRA chez 22,2 % sous vancomycine + pip-tazo contre 12,9 % sous comparateurs (nombre de patients à traiter pour un effet néfaste : 11). OR 3,40 contre vancomycine seule ; OR 2,68 contre vancomycine + céfépime ou carbapénème.</li>
   <li><b>Chez les patients de réanimation</b> (sous-analyse, 968 patients) : pas de différence significative contre vancomycine + céfépime/carbapénème (OR 1,43 ; IC 95 % 0,83–2,47).</li>
@@ -570,6 +572,24 @@ function viewTox(){
   <li>Pratique : surveiller la créatinine et la vancocinémie (cibles du service), limiter la durée de l'association (désescalade à 48–72 h).</li>
  </ul>
  ${refChips(['luther18','acorn23','nar25'])}
+ <p id="cfzclox"><b>2b. Cloxacilline contre céfazoline (bactériémie à SAMS)</b></p>
+ <p class="muted">Chiffres présentés dans l'ordre <b>céfazoline contre pénicilline M</b> (cloxacilline ou flucloxacilline).</p>
+ <table class="tbl"><tr><th></th><th>CloCeBa (France, Lancet 2025)</th><th>SNAP, volet SAMS (NEJM 2026)</th></tr>
+ <tr><td>Schéma</td><td>Randomisé ouvert, non-infériorité, 21 centres, 292 patients</td><td>Plateforme adaptative internationale, 1 341 patients, arrêt anticipé (non-infériorité atteinte)</td></tr>
+ <tr><td>Doses</td><td>Céfazoline 25–50 mg/kg/8 h (≤ 6 g/j) ; cloxacilline 25–50 mg/kg/4–6 h (8–12 g/j) ; molécule randomisée imposée les 7 premiers jours</td><td>Céfazoline 2 g/8 h (2 g/6 h si réanimation, endocardite ou SNC) ; flucloxacilline 2 g/6 h (2 g/4 h forte dose) ; cloxacilline 2 g/4 h</td></tr>
+ <tr><td>Efficacité</td><td>Succès à J90 (composite) : <b>75 % contre 74 %</b> → non-infériorité</td><td>Mortalité J90 : <b>15,0 % contre 17,0 %</b> (ORa 0,81) → non-infériorité (probabilité 99,2 %), supériorité probable (89,8 %) mais non démontrée</td></tr>
+ <tr><td>IRA</td><td><b>1/134 contre 15/128 à J7</b> ; 4/111 contre 19/99 en fin de traitement</td><td><b>13,9 % contre 19,6 % à J14</b> (ORa 0,67) ; stade 3 : 1,8 % contre 2,9 %</td></tr>
+ <tr><td>Autres</td><td>Événements indésirables graves à J7 : 14 contre 30</td><td>Arrêt pour effet indésirable : <b>1,6 % contre 9,1 %</b> ; nouvelle EER à J90 : 2,5 % contre 4,1 % (non significatif)</td></tr>
+ <tr><td>Exclusions / limites</td><td>Exclus : AVC < 1 mois, abcès cérébral, méningite ; implant endovasculaire ; matériel infecté. Peu de formes graves (Pitt médian 0)</td><td>Infections du SNC : 0,5 % des patients (aucune conclusion) ; réanimation à l'inclusion ≈ 11 % (pas d'analyse dédiée) ; dialysés exclus ; endocardites : 104 patients, effectif insuffisant</td></tr></table>
+ <ul class="pts">
+  <li><b>En résumé</b> : efficacité comparable et <b>nettement moins d'IRA et d'arrêts pour intolérance sous céfazoline</b>.</li>
+  <li><b>Mécanisme côté pénicilline M</b> : néphrite interstitielle immuno-allergique (RCP) ; effet dose (CloCeBa : 8–12 g/j).</li>
+  <li><b>Effet inoculum (β-lactamase de type A)</b> : question non tranchée. Dans CloCeBa, échecs microbiologiques 10 % contre 5 % dans ce sous-groupe (non significatif) ; dans SNAP, analyses non encore publiées. Endocardites et foyers profonds restent peu représentés.</li>
+  <li><b>Système nerveux central</b> : <b>pas de données</b> dans ces deux essais (exclus ou trop peu nombreux). Les recommandations françaises citées dans la fiche céfazoline la déconseillent dans le SNC (diffusion insuffisante) ; le protocole NAR prévoit pourtant une dose méningée (8–12 g/j IVSE) — écart à trancher avec l'équipe.</li>
+  <li><b>Pénicilline G (souche péni-S)</b> : dans SNAP (Lancet 2026), moins d'IRA qu'avec la (fluclo)xacilline (11 % contre 22 %), mortalité J90 14 % contre 21 % (non-infériorité).</li>
+  <li><b>Pratique en neuroréa</b> (hors SNC) : la céfazoline est une option à privilégier chez le patient à risque rénal (IRA, néphrotoxiques associés : produits de contraste, aminosides, vancomycine) ; garder la cloxacilline pour l'infection du SNC. Surveillance de la céfazoline : TP hebdomadaire (NAR).</li>
+ </ul>
+ ${refChips(['cloceba25','snap_cfz26','snap_peni26','spilf_penim16','nar25'])}
  <h3 id="lzdmyelo">3. Myélotoxicité du linézolide</h3>
  <ul class="pts">
   <li>Surveillance : <b>NFS 2 fois par semaine</b> (protocole NAR) ; RCP : 1 fois par semaine pour tous, plus étroite si cytopénie préexistante, insuffisance rénale sévère ou traitement > 10–14 jours.</li>
@@ -639,7 +659,7 @@ function viewRefs(){
 }
 
 /* ---------- ANTIBIOGRAMME ---------- */
-const APP_VERSION='1.19';
+const APP_VERSION='1.20';
 let SAMPLE = null, sampleImages=false;
 const PHOTO = {msg:'', thumbs:[]}; let PHOTO_TARGET='abg';
 function photoMsg(h){ PHOTO.msg=h; const m=document.getElementById('photomsg'); if(m) m.innerHTML=h; }
@@ -985,6 +1005,7 @@ function searchAll(q){
  const KW=[['isolement precautions contact gouttelettes air respiratoire ffp2 masque hygiene eoh','#hygiene','🧼 Hygiène : isolements et précautions'],
   ['mdo mso declaration signalement obligatoire ars point focal cerfa','#hygiene','📣 Maladies à signalement obligatoire (MSO/MDO) — ARS Nouvelle-Aquitaine'],
   ['esin e-sin ias cas groupes aes accident exposition','#hygiene','🏥 Signalement des IAS (e-SIN), AES'],
+  ['cloxacilline céfazoline cefazoline cloceba snap néphrotoxicité sams','#pharmaco-tox:cfzclox','⚖️ Cloxacilline vs céfazoline (CloCeBa, SNAP)'],
   ['antitoxinique antitoxine toxine pvl choc toxique clindamycine','#pharmaco-atx','🧪 Antibiothérapie antitoxinique (Pharmaco)'],
   ['encephalopathie neurotoxicite toxicite convulsion myoclonie cefepime surveillance','#pharmaco-tox','⚠️ Toxicités & surveillance des anti-infectieux (Pharmaco)'],
   ['pkpd pharmacocinetique stp dosage cible cmi','#pharmaco','📈 PK/PD & STP (Pharmaco)'],

@@ -1,5 +1,9 @@
 /* GLOSSAIRE DES ACRONYMES — affichés au survol / toucher dans toute l'app et listés dans l'onglet Références */
 window.GLOSS = {
+ 'ORa':"Odds ratio ajusté",
+ 'SNAP':"Staphylococcus aureus Network Adaptive Platform trial (essai plateforme international, 2026)",
+ 'CloCeBa':"Cloxacillin versus Cefazolin in Bacteraemia — essai randomisé français (Lancet 2025)",
+ 'Pitt':"Score de Pitt : score de gravité des bactériémies (0 = forme peu grave)",
  'FGSI':'Fournier Gangrene Severity Index (score pronostique)', 'UFGSI':'Uludag Fournier Gangrene Severity Index', 'LRINEC':'Laboratory Risk Indicator for Necrotizing Fasciitis (score)',
  'DRP':'Désobstruction rhinopharyngée (lavage des fosses nasales au sérum physiologique)', 'TPN':'Traitement par pression négative (pansement)', 'CIED':'Cardiac implantable electronic device (stimulateur/DAI)',
  'DAI':'Défibrillateur automatique implantable', 'TAVI':'Transcatheter aortic valve implantation (remplacement valvulaire aortique percutané)', 'HACEK':'Haemophilus, Aggregatibacter, Cardiobacterium, Eikenella, Kingella',
