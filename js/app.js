@@ -27,7 +27,7 @@ function annotate(root){
  const nodes=[]; let n; while((n=walker.nextNode())) nodes.push(n);
  nodes.forEach(t=>{ GRE.lastIndex=0; const frag=document.createDocumentFragment(); let last=0, m; const v=t.nodeValue;
    while((m=GRE.exec(v))){ const start=m.index+m[1].length; frag.append(v.slice(last,start)); const a=document.createElement('abbr'); a.textContent=m[2]; a.title=GL[m[2]]; a.dataset.g=m[2]; frag.append(a); last=start+m[2].length; }
-   frag.append(v.slice(last)); t.parentNode.replaceChild(frag,t); });
+   frag.append(v.slice(last)); const w=document.createElement('span'); w.className='gw'; w.append(frag); t.parentNode.replaceChild(w,t); });
 }
 function gpop(e){ const a=e.target.closest('abbr[data-g]'); const pop=$('#gpop'); if(!a){ if(!e.target.closest('#gpop')) pop.hidden=true; return; } e.preventDefault(); pop.innerHTML=`<b>${esc(a.dataset.g)}</b> : ${esc(GL[a.dataset.g])}`; pop.hidden=false; }
 
@@ -157,6 +157,11 @@ function viewMolecules(){
   ${Object.entries(groups).map(([cls,ds])=>`<h3 class="grp">${esc(cls)}</h3><div class="tiles">${ds.map(d=>`<a class="tile" href="#m-${d.id}"><b>${esc(d.name)}</b><span>${(()=>{const t=(d.dose&&(d.dose.high||d.dose.std))||''; return esc(t.slice(0,90))+(t.length>90?'…':'');})()}</span></a>`).join('')}</div>`).join('') || '<p class="muted">Aucun résultat.</p>'}
  </section>`;
 }
+
+function survHTML(id){
+ const S=(window.SURV||{})[id]; if(!S||!S.length) return '';
+ return `<details class="sec" id="s-surv" open><summary><span class="ico">🩺</span>Surveillance / particularités</summary><div class="secbody"><div class="survlist">${S.map(x=>`<div class="survit"><div class="survq">${x.q}${x.s==='NAR'?' <span class="tag tnar">NAR</span>':''}</div><div class="survf"><b>Quand</b> : ${x.f}</div><div class="survw"><b>Pourquoi</b> : ${x.w}</div>${x.s!=='NAR'&&R[x.s]?`<div class="survs"><a class="ref ${R[x.s].lvl}" href="${esc(R[x.s].u)}" target="_blank" rel="noopener">${esc(R[x.s].s.split(' — ')[0].replace(/\s*\(.*?\)/g,'').slice(0,40))}</a></div>`:''}</div>`).join('')}</div><p class="muted small">« Non fixée par le RCP » : le RCP demande la surveillance sans en préciser le rythme.</p></div></details>`;
+}
 function viewMolecule(id){
  window.__SITES=[]; window.__GERM="";
  const d=D[id]; if(!d) return '<p>Introuvable.</p>';
@@ -172,6 +177,7 @@ function viewMolecule(id){
   ${d.dose&&d.dose.po?`<div class="dose"><span class="tag">Voie orale</span> ${esc(d.dose.po)}</div>`:''}
   ${d.dose&&d.dose.other?`<div class="dose">${esc(d.dose.other)}</div>`:''}
  </div>
+ ${survHTML(d.id)}
  <dl class="fiche">
   <dt>Formes</dt><dd>${d.forms}</dd>
   <dt>PK/PD</dt><dd>${d.pkpd}</dd>
@@ -188,7 +194,7 @@ function viewMolecule(id){
   <dt>Diffusion LCS</dt><dd>${esc(d.lcr)}</dd>
   <dt>Sites (moteur)</dt><dd>${siteTxt}</dd>
  </dl>
- <h3>Références</h3>${refList([...((window.NARP||{})[d.id]?['nar25']:[]), ...d.refs.filter(x=>x!=='nar25'), ...(window.OBESE[d.id]?['abxbmi','martson25']:[])])}
+ <h3>Références</h3>${refList([...new Set([...((window.NARP||{})[d.id]?['nar25']:[]), ...d.refs.filter(x=>x!=='nar25'), ...(window.OBESE[d.id]?['abxbmi','martson25']:[]), ...(((window.SURV||{})[d.id])||[]).map(x=>x.s).filter(x=>x!=='NAR')])])}
  </section>`;
 }
 
@@ -211,6 +217,7 @@ function viewGerm(id){
  return `<section class="card"><a class="back" href="#germes">← Germes</a><h2>${esc(g.name)} <small class="muted">${esc(g.cat)}</small></h2>
  ${secs([
   {id:'s-hier', ico:'🏆', t:'Traitement hiérarchisé', raw:true, html:hierHTML(g.id), open:true},
+  {id:'s-fr', ico:'📊', t:'Résistances en France (%)', raw:true, html:epiTable(((window.EPIFR||{}).germ||{})[g.id],'Antibiotique (% résistant)')+(((window.EPIFR||{}).germ||{})[g.id]?'<p class="muted small">% de souches résistantes sauf mention ; sources françaises (EARS-Net France = hémocultures/LCS ; REA-REZO = infections acquises en réanimation ; PRIMO = ville/Ehpad). L\'écologie locale prime.</p>':'')},
   {id:'s-ttt', ico:'💊', t:(window.HIER&&window.HIER[g.id])?'Commentaires thérapeutiques':'Traitement', html:g.ttt, open:!(window.HIER&&window.HIER[g.id])},
   {id:'s-tips', ico:'💡', t:'À savoir', html:g.tips, open:true},
   {id:'s-nat', ico:'🛡', t:'Résistances naturelles', html:g.nat},
@@ -219,9 +226,25 @@ function viewGerm(id){
   {id:'s-mol', ico:'🔗', t:'Molécules liées', raw:true, html:(g.ast||[]).map(x=>D[x]?`<a class="pill ok" href="#m-${x}">${esc(D[x].name)}</a>`:'').join(' ')}
  ])}
  <p><button class="btn" data-newiso="${g.id}">➕ Utiliser ce germe dans l'antibiogramme</button></p>
- <h3>Références</h3>${refList(g.refs)}</section>`;
+ <h3>Références</h3>${refList([...new Set([...(g.refs||[]), ...((((window.EPIFR||{}).germ||{})[g.id])||[]).map(b=>b.ref).filter(Boolean)])])}</section>`;
 }
 
+
+
+/* ---------- épidémiologie française et mesures associées ---------- */
+function epiTable(blocks, pct){
+ if(!blocks||!blocks.length) return '';
+ return blocks.map(b=>{
+  const mx=Math.max(1,...(b.rows||[]).map(r=>parseFloat(String(r[1]).replace(',','.'))||0)); const rows=(b.rows||[]).map(r=>{ const v=parseFloat(String(r[1]).replace(',','.'))||0; return `<tr><td data-label="">${r[0]}</td><td class="num" data-label="%"><span class="bar"><i style="width:${Math.round(100*v/mx)}%"></i></span>${r[1]} %${r[2]?` <small class="muted">(${r[2]})</small>`:''}</td></tr>`; }).join('');
+  const fam=b.fam?`<div class="famrow">${b.fam.map(f=>`<span class="tagg">${f[0]} ${f[1]} %</span>`).join('')}</div>`:'';
+  const ref=b.ref&&R[b.ref]?` <a class="ref ${R[b.ref].lvl}" href="${esc(R[b.ref].u)}" target="_blank" rel="noopener">${esc(R[b.ref].s.split(' — ')[0].replace(/\s*\(.*?\)/g,'').slice(0,40))}</a>`:'';
+  return `<div class="epiblk"><div class="epit">${b.t}${ref}</div>${rows?`<table class="epitab"><thead><tr><th>${pct}</th><th>%</th></tr></thead><tbody>${rows}</tbody></table>`:''}${fam}${b.note?`<p class="muted small">${b.note}</p>`:''}</div>`;
+ }).join('');
+}
+function annexHTML(id){
+ const A=(window.ANNEXE||{})[id]; if(!A) return '';
+ return A.map(b=>`<div class="annex"><div class="sub">${b.t}</div><ul class="pts">${b.items.map(x=>`<li>${x}</li>`).join('')}</ul>${refChips(b.refs)}</div>`).join('');
+}
 
 /* ---------- mise en forme lisible des fiches ---------- */
 function lbl(s){
@@ -240,9 +263,31 @@ function fmtText(t){
   close();
   if((m=ln.match(/^<b>([^<]{2,140})<\/b>\s*:?\s*$/))){ out+=`<div class="sub">${m[1]}</div>`; continue; }
   if((m=ln.match(/^<b>([^<]{2,90})<\/b>\s*[:—]\s*([\s\S]+)$/))){ out+=`<div class="sub">${m[1]}</div><p>${m[2]}</p>`; continue; }
+  const parts=splitLong(ln);
+  if(parts){ out+='<ul class="pts auto">'+parts.map(x=>'<li>'+lbl(x)+'</li>').join('')+'</ul>'; continue; }
   out+=`<p>${ln}</p>`;
  }
  close(); return out;
+}
+/* découpe des paragraphes longs en puces : séparateurs « ; » et « . » + majuscule, hors parenthèses/balises/abréviations */
+const NOSPLIT=/(?:^|[\s(])(?:[A-Za-z]|cf|ex|p|vs|env|spp|sp|al|min|max|mg|kg|h|j|sem|Dr|Pr|St|etc)$/;
+function splitLong(ln){
+ const plain=ln.replace(/<[^>]+>/g,''); if(plain.length<260) return null;
+ const segs=[]; let depth=0, tag=false, cur='';
+ for(let i=0;i<ln.length;i++){
+  const c=ln[i]; cur+=c;
+  if(c==='<'){tag=true;continue;} if(c==='>'){tag=false;continue;} if(tag) continue;
+  if(c==='('||c==='[') depth++; else if((c===')'||c===']')&&depth>0) depth--;
+  if(depth) continue;
+  if(c===';' && ln[i+1]===' '){ segs.push(cur.slice(0,-1)); cur=''; i++; continue; }
+  if(c==='.' && ln[i+1]===' '){ const nx=ln.slice(i+2).replace(/^(<[^>]+>)+/,''); const prev=cur.slice(0,-1).replace(/<[^>]+>/g,'');
+    if(/^[A-ZÀ-ÖØ-Þ0-9«⚠]/.test(nx) && !NOSPLIT.test(prev) && !/\d$/.test(prev)){ segs.push(cur.slice(0,-1)); cur=''; i++; continue; } }
+ }
+ if(cur.trim()) segs.push(cur);
+ const out=segs.map(x=>x.trim()).filter(x=>x.replace(/<[^>]+>/g,'').trim().length>0);
+ if(out.length<3) return null;
+ // rééquilibrer les balises <b>/<i> ouvertes sur plusieurs segments
+ return out.map(x=>{ for(const t of ['b','i']){ const o=(x.match(new RegExp('<'+t+'>','g'))||[]).length, cl=(x.match(new RegExp('</'+t+'>','g'))||[]).length; if(o>cl) x+='</'+t+'>'.repeat(o-cl); if(cl>o) x='<'+t+'>'.repeat(cl-o)+x; } return x; });
 }
 function fmt(h){
  if(!h || h==='—') return '';
@@ -381,13 +426,15 @@ function viewPatho(id){
   {id:'s-proba', ico:'💊', t:(window.NARPATHO||{})[p.id]?'Recommandations — traitement probabiliste':'Traitement probabiliste', html:p.proba, open:!((window.NARPATHO||{})[p.id])},
   {id:'s-doc', ico:'🎯', t:'Traitement documenté / adaptation', html:p.doc},
   {id:'s-duree', ico:'⏱', t:'Durée', html:p.duree, open:true},
+  {id:'s-annexe', ico:'🧩', t:'Mesures associées (hors anti-infectieux)', raw:true, html:annexHTML(p.id), open:true},
   {id:'s-diag', ico:'🔬', t:'Diagnostic / examens', html:p.diag},
   {id:'s-semio', ico:'🩺', t:'Clinique / définitions', html:p.semio},
   {id:'s-epi', ico:'🦠', t:'Épidémiologie / germes', html:p.epi},
+  {id:'s-fr', ico:'📊', t:'Germes en France (%)', raw:true, html:epiTable(((window.EPIFR||{}).patho||{})[p.id],'Micro-organisme')},
   {id:'s-div', ico:'⚖', t:'Recommandations : concordance / divergences', html:p.div}
  ])}
  <p><button class="btn" data-site="${p.site}">➕ Sélectionner ce site dans l'antibiogramme</button></p>
- <h3>Références</h3>${refList([...((window.NARPATHO||{})[p.id]?['nar25']:[]), ...p.refs.filter(x=>x!=='nar25')])}</section>`;
+ <h3>Références</h3>${refList([...new Set([...((window.NARPATHO||{})[p.id]?['nar25']:[]), ...p.refs.filter(x=>x!=='nar25'), ...((window.ANNEXE||{})[p.id]||[]).flatMap(b=>b.refs||[]), ...((((window.EPIFR||{}).patho||{})[p.id])||[]).map(b=>b.ref).filter(Boolean)])])}</section>`;
 }
 
 /* ---------- EXAMENS ---------- */
@@ -481,7 +528,7 @@ function viewRefs(){
 }
 
 /* ---------- ANTIBIOGRAMME ---------- */
-const APP_VERSION='1.15';
+const APP_VERSION='1.16';
 let SAMPLE = null, sampleImages=false;
 const PHOTO = {msg:'', thumbs:[]}; let PHOTO_TARGET='abg';
 function photoMsg(h){ PHOTO.msg=h; const m=document.getElementById('photomsg'); if(m) m.innerHTML=h; }
