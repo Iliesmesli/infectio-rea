@@ -207,7 +207,7 @@ function viewMolecules(){
  return `<section class="card"><div class="toolbar">
   <div class="seg">${[['all','Tous'],['ab','Antibactériens'],['af','Antifongiques'],['av','Antiviraux']].map(([k,l])=>`<button class="${molFilter.type===k?'on':''}" data-molt="${k}">${l}</button>`).join('')}</div>
   <input type="search" id="molq" placeholder="Filtrer (nom, classe, abréviation)…" value="${esc(molFilter.q)}"></div>
-  <div class="transv"><b>Fiches transversales</b> : <a href="#pharmaco-atx">🧪 Antitoxiniques</a> · <a href="#pharmaco-tox">⚠️ Toxicités & surveillance (encéphalopathie aux β-lactamines…)</a> · <a href="#pharmaco">📈 PK/PD & STP</a></div>
+  <div class="transv"><b>Fiches transversales</b> : <a href="#pharmaco-atx">🧪 Antitoxiniques</a> · <a href="#pharmaco-bio">🧫 Anti-biofilm</a> · <a href="#pharmaco-tox">⚠️ Toxicités & surveillance (encéphalopathie aux β-lactamines…)</a> · <a href="#pharmaco">📈 PK/PD & STP</a></div>
   ${Object.entries(groups).map(([cls,ds])=>`<h3 class="grp">${esc(cls)}</h3><div class="tiles">${ds.map(d=>`<a class="tile" href="#m-${d.id}"><b>${esc(d.name)}</b><span>${(()=>{const t=(d.dose&&(d.dose.high||d.dose.std))||''; return esc(t.slice(0,90))+(t.length>90?'…':'');})()}</span></a>`).join('')}</div>`).join('') || '<p class="muted">Aucun résultat.</p>'}
  </section>`;
 }
@@ -232,6 +232,7 @@ function viewMolecule(id){
   ${d.dose&&d.dose.other?`<div class="dose">${esc(d.dose.other)}</div>`:''}
  </div>
  ${['cloxa','cefazoline'].includes(d.id)?'<div class="admin"><b>Cloxacilline ou céfazoline ?</b> <a href="#pharmaco-tox:cfzclox">→ essais CloCeBa et SNAP (efficacité, néphrotoxicité)</a></div>':''}
+ ${['rifam','cipro','levo','dapto','fosfo'].includes(d.id)?'<div class="admin"><b>Anti-biofilm</b> : <a href="#pharmaco-bio">→ rôle sur matériel, règles d\'association, situations</a></div>':''}
  ${['clinda','linez','rifam'].includes(d.id)?'<div class="admin"><b>Antitoxinique</b> : <a href="#pharmaco-atx">→ puissance comparée et schémas</a></div>':''}
  ${survHTML(d.id)}
  <dl class="fiche">
@@ -273,6 +274,7 @@ function viewGerm(id){
  return `<section class="card"><a class="back" href="#germes">← Germes</a><h2>${esc(g.name)} <small class="muted">${esc(g.cat)}</small></h2>
  ${secs([
   {id:'s-hier', ico:'🏆', t:'Traitement hiérarchisé', raw:true, html:hierHTML(g.id), open:true},
+  ...(['saureus','scn','cuti'].includes(g.id)?[{id:'s-biof', ico:'🧫', t:'Infection sur matériel (biofilm)', raw:true, html:'<p>DVE, dérivation, matériel rachidien, cathéter, prothèse : voir la fiche <a href="#pharmaco-bio">Antibiothérapie anti-biofilm</a> (rifampicine en association, moment d\'introduction, verrous).</p>', open:false}]:[]),
   ...(['saureus','strepA'].includes(g.id)?[{id:'s-atx', ico:'🧪', t:'Formes toxiniques', raw:true, html:'<p>Choc toxique, DHBN, pneumonie nécrosante à S. aureus PVL : voir la fiche <a href="#pharmaco-atx">Antibiothérapie antitoxinique (puissance comparée)</a>.</p>', open:true}]:[]),
   {id:'s-fr', ico:'📊', t:'Résistances en France (%)', raw:true, html:epiTable(((window.EPIFR||{}).germ||{})[g.id],'Antibiotique (% résistant)')+(((window.EPIFR||{}).germ||{})[g.id]?'<p class="muted small">% de souches résistantes sauf mention ; sources françaises (EARS-Net France = hémocultures/LCS ; REA-REZO = infections acquises en réanimation ; PRIMO = ville/Ehpad). L\'écologie locale prime.</p>':'')},
   {id:'s-ttt', ico:'💊', t:(window.HIER&&window.HIER[g.id])?'Commentaires thérapeutiques':'Traitement', html:g.ttt, open:!(window.HIER&&window.HIER[g.id])},
@@ -483,6 +485,7 @@ function viewPatho(id){
   {id:'s-proba', ico:'💊', t:(window.NARPATHO||{})[p.id]?'Recommandations — traitement probabiliste':'Traitement probabiliste', html:p.proba, open:!((window.NARPATHO||{})[p.id])},
   {id:'s-doc', ico:'🎯', t:'Traitement documenté / adaptation', html:p.doc},
   {id:'s-duree', ico:'⏱', t:'Durée', html:p.duree, open:true},
+  ...(['ventri','bact_kt','endoc'].includes(p.id)?[{id:'s-biof', ico:'🧫', t:'Matériel conservé : anti-biofilm', raw:true, html:'<p>Voir la fiche <a href="#pharmaco-bio">Antibiothérapie anti-biofilm</a> (rifampicine, fluoroquinolones, verrous antibiotiques, durées).</p>', open:false}]:[]),
   {id:'s-annexe', ico:'🧩', t:'Mesures associées (hors anti-infectieux)', raw:true, html:annexHTML(p.id), open:true},
   {id:'s-diag', ico:'🔬', t:'Diagnostic / examens', html:p.diag},
   {id:'s-semio', ico:'🩺', t:'Clinique / définitions', html:p.semio},
@@ -576,7 +579,7 @@ function pkpdInner(){
 }
 
 /* ---------- PHARMACO : sous-onglets ---------- */
-const PHARMA_SUB=[['pkpd','PK/PD & STP','#pharmaco'],['tox','Toxicités & surveillance','#pharmaco-tox'],['atx','Antitoxiniques','#pharmaco-atx']];
+const PHARMA_SUB=[['pkpd','PK/PD & STP','#pharmaco'],['tox','Toxicités & surveillance','#pharmaco-tox'],['atx','Antitoxiniques','#pharmaco-atx'],['bio','Anti-biofilm','#pharmaco-bio']];
 function pharmaShell(cur, inner){
  return `<section class="card"><div class="seg wrap subtabs">${PHARMA_SUB.map(([k,l,h])=>`<a class="${k===cur?'on':''}" href="${h}">${l}</a>`).join('')}</div>${inner}</section>`;
 }
@@ -700,6 +703,21 @@ function viewATX(){
  <h3>Références</h3>${refList(A.refs)}`);
 }
 
+function viewBIOF(){
+ const A=window.ANTIBIOFILM; if(!A) return pharmaShell('bio','<p>—</p>');
+ return pharmaShell('bio', `<h2>Antibiothérapie anti-biofilm — infections sur matériel</h2>
+ <p class="muted small">DVE et dérivations, matériel rachidien ou crânien, cathéters, prothèses valvulaires et ostéo-articulaires.</p>
+ ${secs([
+  {id:'b-pri', ico:'🎯', t:'Principe et indications', raw:true, html:A.principe, open:true},
+  {id:'b-tab', ico:'📊', t:'Rôle anti-biofilm par molécule', raw:true, html:A.tab, open:true},
+  {id:'b-sit', ico:'🧠', t:'Conduite selon la situation', raw:true, html:A.situ, open:true},
+  {id:'b-rif', ico:'💊', t:'Règles d\'utilisation de la rifampicine', raw:true, html:A.regles, open:true},
+  {id:'b-dur', ico:'⏱', t:'Durées', raw:true, html:A.duree, open:true}
+ ])}
+ <p>Fiches : <a href="#m-rifam">Rifampicine</a> · <a href="#m-cipro">Ciprofloxacine</a> · <a href="#m-levo">Lévofloxacine</a> · <a href="#m-dapto">Daptomycine</a> · <a href="#p-ventri">Ventriculite</a> · <a href="#p-bact_kt">Bactériémie sur cathéter</a> · <a href="#p-endoc">Endocardite</a> · <a href="#g-saureus">S. aureus</a> · <a href="#g-scn">Staphylocoques à coagulase négative</a></p>
+ <h3>Références</h3>${refList(A.refs)}`);
+}
+
 /* ---------- RÉFÉRENCES ---------- */
 function viewRefs(){
  const by={FR:[],EU:[],US:[]}; Object.entries(R).forEach(([k,r])=>(by[r.lvl]||by.EU).push([k,r]));
@@ -711,7 +729,7 @@ function viewRefs(){
 }
 
 /* ---------- ANTIBIOGRAMME ---------- */
-const APP_VERSION='1.21';
+const APP_VERSION='1.22';
 let SAMPLE = null, sampleImages=false;
 const PHOTO = {msg:'', thumbs:[]}; let PHOTO_TARGET='abg';
 function photoMsg(h){ PHOTO.msg=h; const m=document.getElementById('photomsg'); if(m) m.innerHTML=h; }
@@ -1058,6 +1076,7 @@ function searchAll(q){
   ['mdo mso declaration signalement obligatoire ars point focal cerfa','#hygiene','📣 Maladies à signalement obligatoire (MSO/MDO) — ARS Nouvelle-Aquitaine'],
   ['esin e-sin ias cas groupes aes accident exposition','#hygiene','🏥 Signalement des IAS (e-SIN), AES'],
   ['cloxacilline céfazoline cefazoline cloceba snap néphrotoxicité sams','#pharmaco-tox:cfzclox','⚖️ Cloxacilline vs céfazoline (CloCeBa, SNAP)'],
+  ['biofilm anti-biofilm antibiofilm matériel dve dérivation verrou lock rifampicine prothèse','#pharmaco-bio','🧫 Antibiothérapie anti-biofilm (Pharmaco)'],
   ['antitoxinique antitoxine toxine pvl choc toxique clindamycine','#pharmaco-atx','🧪 Antibiothérapie antitoxinique (Pharmaco)'],
   ['encephalopathie neurotoxicite toxicite convulsion myoclonie cefepime surveillance','#pharmaco-tox','⚠️ Toxicités & surveillance des anti-infectieux (Pharmaco)'],
   ['pkpd pharmacocinetique stp dosage cible cmi','#pharmaco','📈 PK/PD & STP (Pharmaco)'],
@@ -1093,6 +1112,7 @@ function render(){
  else if(r==='pharmaco'){ html=viewPKPD(); }
  else if(r==='pharmaco-tox'){ html=viewTox(); tab='pharmaco'; }
  else if(r==='pharmaco-atx'){ html=viewATX(); tab='pharmaco'; }
+ else if(r==='pharmaco-bio'){ html=viewBIOF(); tab='pharmaco'; }
  else html = ({antibiogramme:viewABG, molecules:viewMolecules, pkpd:viewPKPD, germes:viewGerms, pathologies:viewPathos, examens:viewExams, antibioprophylaxie:viewABP, bio:viewBIO, patient:viewPatient, references:viewRefs}[r]||viewABG)();
  $$('#tabs a').forEach(a=>a.classList.toggle('on', a.getAttribute('href')==='#'+tab));
  main.innerHTML = html; { const gp=$('#gpop'); if(gp) gp.hidden=true; }

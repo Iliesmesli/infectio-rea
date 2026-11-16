@@ -1,5 +1,7 @@
 /* GLOSSAIRE DES ACRONYMES — affichés au survol / toucher dans toute l'app et listés dans l'onglet Références */
 window.GLOSS = {
+ 'AEPEI':"Association pour l'étude et la prévention de l'endocardite infectieuse",
+ 'ARREST':"Adjunctive Rifampicin to Reduce Early mortality from STaphylococcus aureus bacteraemia (essai randomisé britannique, Lancet 2018)",
  'ORa':"Odds ratio ajusté",
  'SNAP':"Staphylococcus aureus Network Adaptive Platform trial (essai plateforme international, 2026)",
  'CloCeBa':"Cloxacillin versus Cefazolin in Bacteraemia — essai randomisé français (Lancet 2025)",
