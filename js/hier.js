@@ -12,7 +12,7 @@ window.HIER = {
    ['A','Allergie non grave : céfazoline. Allergie grave : daptomycine (bactériémie, endocardite) ou vancomycine ; linézolide (poumon, SNC).'],
    ['X','Vancomycine si β-lactamine possible (moins efficace sur SAMS).']]},
   {s:'SARM (méti-R)', t:[
-   ['1','<b>Bactériémie, endocardite, cathéter — protocole NAR : daptomycine 10 mg/kg/j OU vancomycine (ex aequo)</b>, puis linézolide. Recos : daptomycine 6 mg/kg (RCP, ePOPI) à 8–12 mg/kg (SPILF 2025), 10 mg/kg en endocardite (ESC 2023) ; vancomycine ASC 400–600.'],
+   ['1','<b>Bactériémie, endocardite, cathéter — protocole NAR : daptomycine 10 mg/kg/j OU vancomycine (ex aequo)</b>, puis linézolide. Recos : daptomycine 6 mg/kg (RCP, ePOPI) à 8–12 mg/kg (SPILF/SFPT/CA-SFM 2025), 10 mg/kg en endocardite (ESC 2023) ; vancomycine ASC 400–600.'],
    ['1','<b>Pneumonie / PAVM (y compris bactériémiante) — NAR : linézolide > vancomycine</b> ; daptomycine non indiquée.'],
    ['1','<b>Méningo-ventriculite — NAR : linézolide 600 mg × 3/j ou vancomycine</b> (60 mg/kg/j, cible 30–40 mg/L).'],
    ['2','Teicoplanine (forte dose de charge) ; ceftaroline ; cotrimoxazole (os, relais) ; os/matériel : + rifampicine ou acide fusidique.'],

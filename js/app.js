@@ -23,18 +23,69 @@ const GKEYS = [...new Set([...Object.keys(GL).filter(k=>k.length>=2 && !NOANN.ha
 const GSRC = ('(^|[^A-Za-zÀ-ÿ0-9\\-])(' + GKEYS.map(k=>k.replace(/[.*+?^${}()|[\]\\\/]/g,'\\$&')).join('|') + ')(?![A-Za-zÀ-ÿ0-9])');
 const GRE = new RegExp(GSRC,'g'), GRE1 = new RegExp(GSRC);
 function annotate(root){
- const skip = new Set(['SCRIPT','STYLE','INPUT','SELECT','OPTION','TEXTAREA','BUTTON','ABBR','SUMMARY']);
+ const skip = new Set(['SCRIPT','STYLE','INPUT','SELECT','OPTION','TEXTAREA','BUTTON','ABBR','SUMMARY','A']);
  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {acceptNode(n){ let p=n.parentNode; while(p && p!==root){ if(skip.has(p.nodeName)|| (p.classList&&p.classList.contains('noabbr'))) return NodeFilter.FILTER_REJECT; p=p.parentNode; } return GRE1.test(n.nodeValue)? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT; }});
  const nodes=[]; let n; while((n=walker.nextNode())) nodes.push(n);
  nodes.forEach(t=>{ GRE.lastIndex=0; const frag=document.createDocumentFragment(); let last=0, m; const v=t.nodeValue;
    while((m=GRE.exec(v))){ const start=m.index+m[1].length; frag.append(v.slice(last,start)); const a=document.createElement('abbr'); a.textContent=m[2]; const inF=!!(t.parentNode.closest&&t.parentNode.closest('.fdrbox,summary,h2,h3,.tile b')); if(!GL[m[2]] && inF){ frag.append(m[2]); last=start+m[2].length; continue; } if(GL[m[2]]) a.title=GL[m[2]]; a.dataset.g=m[2]; if(FT[m[2]] && !inF){ a.dataset.f=FT[m[2]]; a.className='fdr'; } frag.append(a); last=start+m[2].length; }
    frag.append(v.slice(last)); const w=document.createElement('x-g'); w.append(frag); t.parentNode.replaceChild(w,t); });
 }
+/* ---------- liens automatiques vers les recommandations citées dans le texte (ex. « SPILF 2016 », « RFE SFAR 2026 ») ---------- */
+const RORGS='SFAR|SPILF|SRLF|SF2H|HCSP|HAS|ANSM|ESCMID|ESC|IDSA|ECIL|ECMM|EORTC|SSC|SPLF|SFPT|SFPC|CA-SFM|EUCAST|ESICM|CORRUSS|DGS|BTS|EASL|WSES|SCCM|CPIC|NIH|AFU|GPIP|SFD|ASHP|ECDC|OMS|ePOPI|MSGERC|ISHAM|ASM|GFRUP|SFMU|AFC|ADARPEF|PIDS|SIDP|ISAP|ACCP|SIS-E|EMA|MHRA|AEPEI|ERS';
+const RLRE=new RegExp('(^|[^A-Za-z0-9])((?:RFE |Recos? )?(?:'+RORGS+')(?:-\\d)?(?:/(?:'+RORGS+'|[A-Z][A-Za-z0-9-]+))*(?: \\(avec [A-Z]+\\))?,? (?:(?:janvier|février|mars|avril|mai|juin|juillet|août|septembre|octobre|novembre|décembre) )?((?:19|20)\\d{2})(?:/(?:19|20)\\d{2})?)(?![0-9])','g');
+const RL_ALIAS={'ePOPI 2025':'epopi','HAS 2019':'has_carba19','SFAR/SRLF 2017':'sfar_pavm17fr','CA-SFM 2025':'casfm25','SF2H 2025':'sf2h_resp_faq25','SFAR 2015':'sfar_iia15','SPILF 2015':'spilf_iuas15','SPILF 2021':'spilf_durees21','SPILF 2025':'spilf_perf25','SRLF 2020':'srlf_kt20'};
+function rlOrgs(tok){ return tok.replace(/^(RFE|Recos?) /,'').replace(/\(avec ([A-Z]+)\)/,'/$1').replace(/,? ((janvier|février|mars|avril|mai|juin|juillet|août|septembre|octobre|novembre|décembre) )?(19|20)\d{2}(\/(19|20)\d{2})?$/,'').split('/').map(x=>x.trim()).filter(Boolean); }
+function refFor(tok,onPage){
+ const t=tok.replace(/^(RFE|Recos?) /,''); const y=(t.match(/(19|20)\d{2}/)||[])[0];
+ const orgs=rlOrgs(tok);
+ const norm=x=>x.toLowerCase().replace(/[\s,()]+/g,' ').trim();
+ let best=[],bs=0;
+ for(const [k,v] of Object.entries(R)){ const seg=(v.s||'').split(' — ')[0]; if(!y||!(seg.includes(y)||(!/(19|20)\d{2}/.test(seg)&&(v.s||'').includes(y)))) continue;
+   const hay=seg+' | '+(v.soc||''); if(!orgs.every(o=>new RegExp('(^|[^A-Za-z0-9])'+o.replace(/[-]/g,'\\-')+'($|[^A-Za-z0-9])','i').test(hay))) continue;
+   const sc=(norm(seg)===norm(t)?4:0)+(onPage.has(k)?2:0)+1; if(sc>bs){bs=sc;best=[k];} else if(sc===bs) best.push(k); }
+ if(best.length===1) return best[0];
+ if(RL_ALIAS[t]) return RL_ALIAS[t];
+ return null;
+}
+window.__RL_MISS=window.__RL_MISS||{};
+const RLRE2=new RegExp('(^|[^A-Za-z0-9/-])((?:'+RORGS+')(?:/(?:'+RORGS+'))*)(?![A-Za-z0-9/-])','g');
+function refForOrgs(tok,onPage){ const orgs=tok.split('/'); const c=[...onPage].filter(k=>{ const v=R[k]; if(!v) return false; const hay=(v.s||'').split(' — ')[0]+' | '+(v.soc||''); return orgs.every(o=>new RegExp('(^|[^A-Za-z0-9])'+o.replace(/[-]/g,'\\-')+'($|[^A-Za-z0-9])','i').test(hay)); }); if(c.length===1) return c[0]; if(orgs.length<2) return null; const g=Object.keys(R).filter(k=>{ const v=R[k]; const hay=(v.s||'').split(' — ')[0]+' | '+(v.soc||''); return orgs.every(o=>new RegExp('(^|[^A-Za-z0-9])'+o.replace(/[-]/g,'\\-')+'($|[^A-Za-z0-9])','i').test(hay)); }); return g.length===1?g[0]:null; }
+function linkRecos(root){ linkRecos1(root); linkOrgs(root); }
+function linkOrgs(root){
+ const byUrl={}; for(const [k,v] of Object.entries(R)) byUrl[v.u]=k;
+ const onPage=new Set([...root.querySelectorAll('a.ref')].map(a=>byUrl[a.getAttribute('href')]).filter(Boolean));
+ const skip=new Set(['SCRIPT','STYLE','INPUT','SELECT','OPTION','TEXTAREA','BUTTON','A','TITLE','H2','H3','SUMMARY']);
+ const re1=new RegExp(RLRE2.source);
+ const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode(n){ let p=n.parentNode; while(p&&p!==root){ if(skip.has(p.nodeName)||(p.classList&&(p.classList.contains('noabbr')||p.classList.contains('refs')))) return NodeFilter.FILTER_REJECT; p=p.parentNode; } return re1.test(n.nodeValue)?NodeFilter.FILTER_ACCEPT:NodeFilter.FILTER_REJECT; }});
+ const nodes=[]; let n; while((n=walker.nextNode())) nodes.push(n);
+ nodes.forEach(t=>{ const v=t.nodeValue; RLRE2.lastIndex=0; let m,last=0,did=false; const frag=document.createDocumentFragment();
+  while((m=RLRE2.exec(v))){ const tok=m[2]; const k=refForOrgs(tok,onPage); if(!k) continue; const st=m.index+m[1].length; frag.append(v.slice(last,st)); const a=document.createElement('a'); a.className='recolink noabbr'; a.href=R[k].u; a.target='_blank'; a.rel='noopener'; a.title=R[k].t+' — '+R[k].s; a.textContent=tok; frag.append(a); last=st+tok.length; did=true; }
+  if(did){ frag.append(v.slice(last)); t.parentNode.replaceChild(frag,t); } });
+}
+function linkRecos1(root){
+ const byUrl={}; for(const [k,v] of Object.entries(R)) byUrl[v.u]=k;
+ const onPage=new Set([...root.querySelectorAll('a.ref')].map(a=>byUrl[a.getAttribute('href')]).filter(Boolean));
+ const skip=new Set(['SCRIPT','STYLE','INPUT','SELECT','OPTION','TEXTAREA','BUTTON','A','TITLE']);
+ const re1=new RegExp(RLRE.source);
+ const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode(n){ let p=n.parentNode; while(p&&p!==root){ if(skip.has(p.nodeName)) return NodeFilter.FILTER_REJECT; p=p.parentNode; } return re1.test(n.nodeValue)?NodeFilter.FILTER_ACCEPT:NodeFilter.FILTER_REJECT; }});
+ const nodes=[]; let n; while((n=walker.nextNode())) nodes.push(n);
+ nodes.forEach(t=>{ const v=t.nodeValue; RLRE.lastIndex=0; let m,last=0,did=false; const frag=document.createDocumentFragment();
+  while((m=RLRE.exec(v))){ const tok=m[2]; const st=m.index+m[1].length; const mk=(txt,k)=>{ const a=document.createElement('a'); a.className='recolink noabbr'; a.href=R[k].u; a.target='_blank'; a.rel='noopener'; a.title=R[k].t+' — '+R[k].s; a.textContent=txt; return a; };
+   const k=refFor(tok,onPage);
+   if(k){ frag.append(v.slice(last,st)); frag.append(mk(tok,k)); last=st+tok.length; did=true; continue; }
+   const orgs=rlOrgs(tok), y=m[3];
+   if(orgs.length>1){ const ks=orgs.map(o=>refFor(o+' '+y,onPage)); if(ks.some(Boolean)){ frag.append(v.slice(last,st)); const pre=(tok.match(/^(RFE|Recos?) /)||[''])[0]; if(pre) frag.append(pre);
+     orgs.forEach((o,i)=>{ if(i) frag.append('/'); const isLast=i===orgs.length-1; const txt=isLast? tok.slice(tok.lastIndexOf(o)) : o; frag.append(ks[i]? mk(txt,ks[i]) : txt); });
+     last=st+tok.length; did=true; continue; } }
+   window.__RL_MISS[tok]=(window.__RL_MISS[tok]||0)+1; }
+  if(did){ frag.append(v.slice(last)); t.parentNode.replaceChild(frag,t); } });
+}
 function gpop(e){ const pop=$('#gpop'); if(e.target.closest('#gpop .popx') || e.target.closest('#gpop a')){ pop.hidden=true; if(e.target.closest('.popx')) return; } const a=e.target.closest('abbr[data-g]'); if(!a){ if(!e.target.closest('#gpop')) pop.hidden=true; return; } e.preventDefault(); pop.innerHTML=(GL[a.dataset.g]?`<b>${esc(a.dataset.g)}</b> : ${esc(GL[a.dataset.g])}`:'')+(a.dataset.f?fdrHTML(a.dataset.f,true):'')+'<button type="button" class="popx" aria-label="Fermer">✕</button>'; pop.hidden=false; pop.scrollTop=0; }
 function fdrHTML(k,inPop){ const F=(window.FDR||{})[k]; if(!F) return ''; return `<div class="fdrbox"><div class="fdrt">⚑ ${F.t}</div>${F.blocks.map(b=>`<div class="fdrb"><div class="fdrc">${b.ctx}${b.s==='NAR'?' <span class="tag tnar">NAR</span>':(R[b.s]?` <a class="ref ${R[b.s].lvl}" href="${esc(R[b.s].u)}" target="_blank" rel="noopener">${esc(R[b.s].s.split(' — ')[0].replace(/\s*\(.*?\)/g,'').slice(0,30))}</a>`:'')}</div><ul>${b.items.map(i=>`<li>${i}</li>`).join('')}</ul>${b.note?`<div class="muted small">${b.note}</div>`:''}</div>`).join('')}${inPop?`<div class="fdrl">${F.germ?`<a href="#g-${F.germ}">Fiche germe →</a> · `:''}<a href="#hygiene:fdr">Tous les FdR (Hygiène) →</a></div>`:''}</div>`; }
 
 /* ---------- références ---------- */
 function refChips(ids){ if(!ids||!ids.length) return ''; return '<div class="refs">'+ids.filter(i=>R[i]).map(i=>`<a class="ref ${R[i].lvl}" href="${esc(R[i].u)}" target="_blank" rel="noopener" title="${esc(R[i].t)}">${esc(R[i].s.split(' — ')[0].replace(/\s*\(.*?\)/g,'').slice(0,34))}</a>`).join('')+'</div>'; }
+function recoRefs(ids){ return (ids||[]).filter(k=>R[k]&&k!=='nar25'&&k!=='gpr'&&!/essai|étude|méta|revue|cohorte|^pk|ecr|in vitro|modèle|lettre|audit|^ma$|cas/i.test(R[k].soc||'')); }
 function refList(ids){ return '<ol class="reflist">'+ids.filter(i=>R[i]).map(i=>`<li><a href="${esc(R[i].u)}" target="_blank" rel="noopener">${esc(R[i].t)}</a> — <span class="muted">${esc(R[i].s)}</span></li>`).join('')+'</ol>'; }
 
 /* ---------- patient ---------- */
@@ -130,7 +181,7 @@ function narLine(d, regKey){
 function narBox(d){
  const N=(window.NARP||{})[d.id]; if(!N) return '';
  const r=(l,v)=>v?`<tr><th>${l}</th><td>${esc(v)}</td></tr>`:'';
- return `<div class="narbox"><h3>🏥 Protocole du service (NAR 2025) — prioritaire</h3><table class="tbl">${r('Fonction rénale normale / EER',N.n)}${r('Hyperclairance > 150 mL/min',N.arc)}${r('Insuffisance rénale',N.seuil?'Seuil d\'adaptation : '+N.seuil:'')}${r('Doses méningées',N.snc)}${r('Concentration max.',N.cmax)}${r('Stabilité',N.stab)}${r('Précisions',N.admin)}</table>${N.diff?`<div class="narfiff"><b>Écart avec les recommandations</b> : ${esc(N.diff)}</div>`:''}</div>`;
+ return `<div class="narbox"><h3>🏥 Protocole du service (NAR 2025) — prioritaire</h3><table class="tbl">${r('Fonction rénale normale / EER',N.n)}${r('Hyperclairance > 150 mL/min',N.arc)}${r('Insuffisance rénale',N.seuil?'Seuil d\'adaptation : '+N.seuil:'')}${r('Doses méningées',N.snc)}${r('Concentration max.',N.cmax)}${r('Stabilité',N.stab)}${r('Précisions',N.admin)}</table>${N.diff?`<div class="narfiff"><b>Écart avec les recommandations</b> : ${esc(N.diff)}${refChips(recoRefs(d.refs))}</div>`:''}</div>`;
 }
 function doseBlock(d, regKey, extras=true){
  const b = band(P);
@@ -428,7 +479,7 @@ function viewPatho(id){
  return `<section class="card"><a class="back" href="#pathologies">← Pathologies</a><h2>${esc(p.name)}</h2>
  ${p.div && p.div!=='—'?`<button type="button" class="badge-div" data-jump="s-div">⚖ Concordance / divergences entre recommandations</button>`:''}
  ${secs([
-  ...(((window.NARPATHO||{})[p.id])? [{id:'s-nar', ico:'🏥', t:'Protocole du service (NAR 2025) — prioritaire', raw:true, html:`<div class="narbox">${fmtText(window.NARPATHO[p.id].html)}${window.NARPATHO[p.id].diff?`<div class="narfiff"><b>Écart avec les recommandations</b> : ${window.NARPATHO[p.id].diff}</div>`:''}</div>`, open:true}] : []),
+  ...(((window.NARPATHO||{})[p.id])? [{id:'s-nar', ico:'🏥', t:'Protocole du service (NAR 2025) — prioritaire', raw:true, html:`<div class="narbox">${fmtText(window.NARPATHO[p.id].html)}${window.NARPATHO[p.id].diff?`<div class="narfiff"><b>Écart avec les recommandations</b> : ${window.NARPATHO[p.id].diff}${refChips(recoRefs(p.refs))}</div>`:''}</div>`, open:true}] : []),
   {id:'s-proba', ico:'💊', t:(window.NARPATHO||{})[p.id]?'Recommandations — traitement probabiliste':'Traitement probabiliste', html:p.proba, open:!((window.NARPATHO||{})[p.id])},
   {id:'s-doc', ico:'🎯', t:'Traitement documenté / adaptation', html:p.doc},
   {id:'s-duree', ico:'⏱', t:'Durée', html:p.duree, open:true},
@@ -514,7 +565,7 @@ function pkpdInner(){
 
  <h3>5. Modes d'administration</h3>
  <ul>
-  <li><b>Perfusion prolongée (3–4 h) ou continue</b> des β-lactamines (après dose de charge en 30 min) : recommandée chez les patients les plus graves, en cas de CMI élevée et d'infection respiratoire basse (SFAR/SFPT 2019) ; vérifier la stabilité de chaque molécule (SPILF 2025 : méropénème ≤ 8 h, amoxicilline ≤ 12 h en NaCl, imipénème et amox-clav non adaptés).</li>
+  <li><b>Perfusion prolongée (3–4 h) ou continue</b> des β-lactamines (après dose de charge en 30 min) : recommandée chez les patients les plus graves, en cas de CMI élevée et d'infection respiratoire basse (SFAR/SFPT 2019) ; vérifier la stabilité de chaque molécule (SPILF/SFPC 2025 : méropénème ≤ 8 h, amoxicilline ≤ 12 h en NaCl, imipénème et amox-clav non adaptés).</li>
   <li><b>Aminosides</b> : dose unique journalière en 30 min.</li>
   <li><b>Vancomycine</b> : continu après dose de charge (atteinte plus rapide des cibles, moins de néphrotoxicité).</li>
  </ul>
@@ -582,14 +633,15 @@ function viewTox(){
  <tr><td>Autres</td><td>Événements indésirables graves à J7 : 14 contre 30</td><td>Arrêt pour effet indésirable : <b>1,6 % contre 9,1 %</b> ; nouvelle EER à J90 : 2,5 % contre 4,1 % (non significatif)</td></tr>
  <tr><td>Exclusions / limites</td><td>Exclus : AVC < 1 mois, abcès cérébral, méningite ; implant endovasculaire ; matériel infecté. Peu de formes graves (Pitt médian 0)</td><td>Infections du SNC : 0,5 % des patients (aucune conclusion) ; réanimation à l'inclusion ≈ 11 % (pas d'analyse dédiée) ; dialysés exclus ; endocardites : 104 patients, effectif insuffisant</td></tr></table>
  <ul class="pts">
+  <li><b>Recommandations</b> : endocardite à SAMS sur valve native, « céfazoline ou cloxacilline » 4–6 semaines (ESC 2023 ; SPILF/AEPEI 2025).</li>
   <li><b>En résumé</b> : efficacité comparable et <b>nettement moins d'IRA et d'arrêts pour intolérance sous céfazoline</b>.</li>
   <li><b>Mécanisme côté pénicilline M</b> : néphrite interstitielle immuno-allergique (RCP) ; effet dose (CloCeBa : 8–12 g/j).</li>
   <li><b>Effet inoculum (β-lactamase de type A)</b> : question non tranchée. Dans CloCeBa, échecs microbiologiques 10 % contre 5 % dans ce sous-groupe (non significatif) ; dans SNAP, analyses non encore publiées. Endocardites et foyers profonds restent peu représentés.</li>
-  <li><b>Système nerveux central</b> : <b>pas de données</b> dans ces deux essais (exclus ou trop peu nombreux). Les recommandations françaises citées dans la fiche céfazoline la déconseillent dans le SNC (diffusion insuffisante) ; le protocole NAR prévoit pourtant une dose méningée (8–12 g/j IVSE) — écart à trancher avec l'équipe.</li>
+  <li><b>Système nerveux central</b> : <b>pas de données</b> dans ces deux essais (exclus ou trop peu nombreux). La SPILF 2016 indique une <b>diffusion faible dans le LCR</b> et ne propose pas la céfazoline dans les infections du SNC (avis spécialisé recommandé) ; le protocole NAR prévoit pourtant une dose méningée (8–12 g/j IVSE) — écart à trancher avec l'équipe.</li>
   <li><b>Pénicilline G (souche péni-S)</b> : dans SNAP (Lancet 2026), moins d'IRA qu'avec la (fluclo)xacilline (11 % contre 22 %), mortalité J90 14 % contre 21 % (non-infériorité).</li>
   <li><b>Pratique en neuroréa</b> (hors SNC) : la céfazoline est une option à privilégier chez le patient à risque rénal (IRA, néphrotoxiques associés : produits de contraste, aminosides, vancomycine) ; garder la cloxacilline pour l'infection du SNC. Surveillance de la céfazoline : TP hebdomadaire (NAR).</li>
  </ul>
- ${refChips(['cloceba25','snap_cfz26','snap_peni26','spilf_penim16','nar25'])}
+ ${refChips(['cloceba25','snap_cfz26','snap_peni26','spilf_penim16','esc_ei23','spilf_aepei25','nar25'])}
  <h3 id="lzdmyelo">3. Myélotoxicité du linézolide</h3>
  <ul class="pts">
   <li>Surveillance : <b>NFS 2 fois par semaine</b> (protocole NAR) ; RCP : 1 fois par semaine pour tous, plus étroite si cytopénie préexistante, insuffisance rénale sévère ou traitement > 10–14 jours.</li>
@@ -603,7 +655,7 @@ function viewTox(){
   <li><b>Dose unique journalière</b> en perfusion de 30 min, durée <b>≤ 5 jours</b>, arrêt le plus souvent après 48–72 h (ANSM 2011).</li>
   <li>Les risques de toxicité rénale et auditive <b>augmentent fortement au-delà de 5–7 jours</b> (ANSM 2011).</li>
   <li>Résiduelle : si traitement > 5 jours (dosage après 48 h) ou insuffisance rénale (RCP gentamicine). Cibles du service : voir les fiches amikacine et gentamicine.</li>
-  <li><b>Prédisposition génétique</b> : les variants mitochondriaux MT-RNR1 (m.1555A>G, m.1095T>C, m.1494C>T) exposent à une surdité après une seule dose. Recommandation CPIC 2021 : éviter les aminosides chez les porteurs connus, sauf si la gravité de l'infection l'emporte et en l'absence d'alternative. Rechercher un antécédent familial de surdité après aminoside.</li>
+  <li><b>Prédisposition génétique</b> : les variants mitochondriaux MT-RNR1 (m.1555A>G, m.1095T>C, m.1494C>T) exposent à une surdité après une seule dose. Recommandation CPIC 2022 : éviter les aminosides chez les porteurs connus, sauf si la gravité de l'infection l'emporte et en l'absence d'alternative. Rechercher un antécédent familial de surdité après aminoside.</li>
  </ul>
  ${refChips(['ansm_amino11','ansm_amino_ville11','rcp_genta','cpic_rnr1'])}
  <h3 id="polymyx">5. Polymyxines (colistine)</h3>
@@ -650,7 +702,7 @@ function viewATX(){
 
 /* ---------- RÉFÉRENCES ---------- */
 function viewRefs(){
- const by={FR:[],EU:[],US:[]}; Object.entries(R).forEach(([k,r])=>by[r.lvl].push([k,r]));
+ const by={FR:[],EU:[],US:[]}; Object.entries(R).forEach(([k,r])=>(by[r.lvl]||by.EU).push([k,r]));
  const sec=(t,a)=>`<h3 class="grp">${t}</h3><ol class="reflist">${a.map(([k,r])=>`<li><a href="${esc(r.u)}" target="_blank" rel="noopener">${esc(r.t)}</a> — <span class="muted">${esc(r.s)}</span></li>`).join('')}</ol>`;
  return `<section class="card"><h2>Références</h2>
  <div class="note">Hiérarchie appliquée : recommandations françaises en priorité (en cas de divergence, <b>SFAR/SRLF privilégiée</b> et divergence signalée), puis européennes, puis américaines. ePOPI (CMIT) et GPR servent de référentiels thérapeutiques complémentaires (abonnement). Posologies de base : annexe SPILF/SFPT/CA-SFM 2025 ; adaptation rénale : RCP/GPR ; obésité : abxbmi.</div>
@@ -659,7 +711,7 @@ function viewRefs(){
 }
 
 /* ---------- ANTIBIOGRAMME ---------- */
-const APP_VERSION='1.20';
+const APP_VERSION='1.21';
 let SAMPLE = null, sampleImages=false;
 const PHOTO = {msg:'', thumbs:[]}; let PHOTO_TARGET='abg';
 function photoMsg(h){ PHOTO.msg=h; const m=document.getElementById('photomsg'); if(m) m.innerHTML=h; }
@@ -1049,7 +1101,7 @@ function render(){
    const rows=[...t.rows]; if(!rows.length) return; const head=[...rows[0].cells];
    if(head.length>=3 && head.every(c=>c.tagName==='TH')){ t.classList.add('stack'); rows.slice(1).forEach(r=>[...r.cells].forEach((c,i)=>{ if(i>0 && head[i]) c.setAttribute('data-label', head[i].textContent.trim()); })); }
  });
- annotate(main);
+ linkRecos(main); annotate(main);
  bindPatient(main); bindABG(main); bindABP(main); bindBIO(main);
  $$('[data-molt]',main).forEach(b=>b.onclick=()=>{ molFilter.type=b.dataset.molt; render(); });
  $$('[data-paysx]',main).forEach(b=>b.onclick=()=>{ PAYSX=b.dataset.paysx; render(); });

@@ -41,7 +41,7 @@ window.ANNEXE = {
    '<b>Saignement majeur, dont hémorragie intracrânienne : arrêter antiagrégants et anticoagulants</b> (classe I, C).',
    'Hémorragie intracrânienne + <b>valve mécanique</b> : reprendre l\'HNF dès que possible après discussion multidisciplinaire (IIa, C).',
    'Sans AVC, si une chirurgie est probable (ex. EI à S. aureus) : remplacer l\'anticoagulant oral par de l\'HNF sous surveillance étroite (IIa, C).',
-   '<b>Thrombolyse non recommandée</b> dans l\'EI (III, C).']},
+   '<b>Thrombolyse non recommandée</b> dans l\'EI (ESC 2023, III C).']},
   {t:'Chirurgie cardiaque après complication neurologique (ESC 2023)', refs:['esc_ei23'], items:[
    'Après un AIT : chirurgie sans délai si elle est indiquée (I, B).',
    'Après un AVC ischémique : chirurgie sans délai si insuffisance cardiaque, infection non contrôlée, abcès ou risque embolique élevé persistant, <b>en l\'absence de coma et après exclusion d\'une hémorragie</b> au scanner/IRM (I, B).',
