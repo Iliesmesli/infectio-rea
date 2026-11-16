@@ -2,7 +2,7 @@
    ANNEXE[pathoId] = [{t:'titre', items:['html', …], refs:[…]}] */
 window.ANNEXE = {
  pac: [
-  {t:'Pneumonie nécrosante à S. aureus PVL', refs:[], items:['Associer un antitoxinique : voir <a href="#p-antitox">Antibiothérapie antitoxinique</a>.']},
+  {t:'Pneumonie nécrosante à S. aureus PVL', refs:[], items:['Associer un antitoxinique : voir <a href="#pharmaco-atx">Antibiothérapie antitoxinique</a>.']},
   {t:'Corticothérapie', refs:['spilf_pac25','capecod23','sccm_cs24'], items:[
    '<b>Hydrocortisone indiquée dans la PAC grave</b>, à débuter rapidement (SPILF/SPLF 2025). En dehors de cette indication, pas de corticothérapie systémique.',
    'Schéma de l\'essai CAPE COD : <b>200 mg/j IV</b> pendant 4 ou 7 j selon l\'amélioration clinique, puis décroissance ; <b>durée totale 8 ou 14 j</b>.',
@@ -11,7 +11,7 @@ window.ANNEXE = {
   {t:'Prévention', refs:['calvac26'], items:['Vaccination pneumococcique et grippale : voir l\'onglet <a href="#vaccins">Vaccins</a>.']}
  ],
  choc: [
-  {t:'Choc toxique (streptocoque, staphylocoque)', refs:[], items:['Antitoxinique + chirurgie de la porte d\'entrée : voir <a href="#p-antitox">Antibiothérapie antitoxinique</a>.']},
+  {t:'Choc toxique (streptocoque, staphylocoque)', refs:[], items:['Antitoxinique + chirurgie de la porte d\'entrée : voir <a href="#pharmaco-atx">Antibiothérapie antitoxinique</a>.']},
   {t:'Corticothérapie', refs:['ssc21','sccm_cs24'], items:[
    '<b>Hydrocortisone 200 mg/j</b> (50 mg q6h ou en continu) suggérée dans le choc septique avec besoin persistant de vasopresseurs, typiquement à partir de noradrénaline ≥ 0,25 µg/kg/min depuis ≥ 4 h (SSC 2021, recommandation faible).',
    'SCCM 2024 : corticoïdes suggérés dans le choc septique (recommandation conditionnelle) ; pas de fortes doses sur une courte durée.']},
@@ -96,7 +96,7 @@ window.ANNEXE = {
    '<b>Débridement chirurgical en urgence</b> de tous les tissus nécrosés, reprise systématique à 24–48 h puis itérative.',
    'IgIV : à discuter dans le choc toxique streptococcique (avis d\'expert ; pas de bénéfice fonctionnel dans l\'essai INSTINCT, infections nécrosantes toutes causes).',
    'Oxygénothérapie hyperbare : non validée, ne doit jamais retarder la chirurgie.',
-   'Antibiotique antitoxinique (clindamycine, linézolide) : voir <a href="#p-antitox">Antibiothérapie antitoxinique</a>.',
+   'Antibiotique antitoxinique (clindamycine, linézolide) : voir <a href="#pharmaco-atx">Antibiothérapie antitoxinique</a>.',
    'Contrôle glycémique, nutrition hyperprotidique, pansements par pression négative puis reconstruction.']}
  ],
  fournier: [

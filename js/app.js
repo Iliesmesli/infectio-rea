@@ -144,7 +144,7 @@ function doseBlock(d, regKey, extras=true){
  if(P.eer==='crrt' && +P.effluent>35) html += `<div class="warn">Dose d'effluent > 35 mL/kg/h : viser le haut de fourchette, STP.</div>`;
  if(W.obese && ob) html += `<div><span class="tag t3">Obésité (IMC ${W.bmi})</span> ${esc(ob.t)}</div>`;
  if(extras && d.admin) html += `<div class="admin"><b>Administration</b> : ${esc(d.admin.dil)} · ${esc(d.admin.duree)} · stabilité ${d.admin.stab}</div>`;
- if(extras && d.tdm && d.tdm!=='—') html += `<div class="admin"><b>STP</b> : ${esc(d.tdm)} <a href="#pkpd">→ cibles PK/PD & prélèvements</a></div>`;
+ if(extras && d.tdm && d.tdm!=='—') html += `<div class="admin"><b>STP</b> : ${esc(d.tdm)} <a href="#pharmaco">→ cibles PK/PD & prélèvements</a></div>`;
  return html+'</div>';
 }
 
@@ -156,13 +156,14 @@ function viewMolecules(){
  return `<section class="card"><div class="toolbar">
   <div class="seg">${[['all','Tous'],['ab','Antibactériens'],['af','Antifongiques'],['av','Antiviraux']].map(([k,l])=>`<button class="${molFilter.type===k?'on':''}" data-molt="${k}">${l}</button>`).join('')}</div>
   <input type="search" id="molq" placeholder="Filtrer (nom, classe, abréviation)…" value="${esc(molFilter.q)}"></div>
+  <div class="transv"><b>Fiches transversales</b> : <a href="#pharmaco-atx">🧪 Antitoxiniques</a> · <a href="#pharmaco-tox">⚠️ Toxicités & surveillance (encéphalopathie aux β-lactamines…)</a> · <a href="#pharmaco">📈 PK/PD & STP</a></div>
   ${Object.entries(groups).map(([cls,ds])=>`<h3 class="grp">${esc(cls)}</h3><div class="tiles">${ds.map(d=>`<a class="tile" href="#m-${d.id}"><b>${esc(d.name)}</b><span>${(()=>{const t=(d.dose&&(d.dose.high||d.dose.std))||''; return esc(t.slice(0,90))+(t.length>90?'…':'');})()}</span></a>`).join('')}</div>`).join('') || '<p class="muted">Aucun résultat.</p>'}
  </section>`;
 }
 
 function survHTML(id){
  const S=(window.SURV||{})[id]; if(!S||!S.length) return '';
- return `<details class="sec" id="s-surv" open><summary><span class="ico">🩺</span>Surveillance / particularités</summary><div class="secbody"><div class="survlist">${S.map(x=>`<div class="survit"><div class="survq">${x.q}${x.s==='NAR'?' <span class="tag tnar">NAR</span>':''}</div><div class="survf"><b>Quand</b> : ${x.f}</div><div class="survw"><b>Pourquoi</b> : ${x.w}${/neurolog/i.test(x.q)?' <a href="#pkpd:neurotox">→ chapitre encéphalopathie</a>':''}</div>${x.s!=='NAR'&&R[x.s]?`<div class="survs"><a class="ref ${R[x.s].lvl}" href="${esc(R[x.s].u)}" target="_blank" rel="noopener">${esc(R[x.s].s.split(' — ')[0].replace(/\s*\(.*?\)/g,'').slice(0,40))}</a></div>`:''}</div>`).join('')}</div><p class="muted small">« Non fixée par le RCP » : le RCP demande la surveillance sans en préciser le rythme.</p></div></details>`;
+ return `<details class="sec" id="s-surv" open><summary><span class="ico">🩺</span>Surveillance / particularités</summary><div class="secbody"><div class="survlist">${S.map(x=>`<div class="survit"><div class="survq">${x.q}${x.s==='NAR'?' <span class="tag tnar">NAR</span>':''}</div><div class="survf"><b>Quand</b> : ${x.f}</div><div class="survw"><b>Pourquoi</b> : ${x.w}${/neurolog/i.test(x.q)?' <a href="#pharmaco-tox:neurotox">→ chapitre encéphalopathie</a>':''}</div>${x.s!=='NAR'&&R[x.s]?`<div class="survs"><a class="ref ${R[x.s].lvl}" href="${esc(R[x.s].u)}" target="_blank" rel="noopener">${esc(R[x.s].s.split(' — ')[0].replace(/\s*\(.*?\)/g,'').slice(0,40))}</a></div>`:''}</div>`).join('')}</div><p class="muted small">« Non fixée par le RCP » : le RCP demande la surveillance sans en préciser le rythme.</p></div></details>`;
 }
 function viewMolecule(id){
  window.__SITES=[]; window.__GERM="";
@@ -175,10 +176,11 @@ function viewMolecule(id){
  <div class="patbox"><h3>Pour le patient actuel <small class="muted">(${patientSummary()})</small></h3>
   ${regs.map(k=>doseBlock(d,k,false)).join('')}
   <div class="admin"><b>Administration</b> : ${esc(d.admin.dil)} · ${esc(d.admin.duree)} · stabilité ${d.admin.stab}</div>
-  ${d.tdm&&d.tdm!=='—'?`<div class="admin"><b>STP</b> : ${esc(d.tdm)} <a href="#pkpd">→ cibles PK/PD & prélèvements</a></div>`:''}
+  ${d.tdm&&d.tdm!=='—'?`<div class="admin"><b>STP</b> : ${esc(d.tdm)} <a href="#pharmaco">→ cibles PK/PD & prélèvements</a></div>`:''}
   ${d.dose&&d.dose.po?`<div class="dose"><span class="tag">Voie orale</span> ${esc(d.dose.po)}</div>`:''}
   ${d.dose&&d.dose.other?`<div class="dose">${esc(d.dose.other)}</div>`:''}
  </div>
+ ${['clinda','linez','rifam'].includes(d.id)?'<div class="admin"><b>Antitoxinique</b> : <a href="#pharmaco-atx">→ puissance comparée et schémas</a></div>':''}
  ${survHTML(d.id)}
  <dl class="fiche">
   <dt>Formes</dt><dd>${d.forms}</dd>
@@ -219,7 +221,7 @@ function viewGerm(id){
  return `<section class="card"><a class="back" href="#germes">← Germes</a><h2>${esc(g.name)} <small class="muted">${esc(g.cat)}</small></h2>
  ${secs([
   {id:'s-hier', ico:'🏆', t:'Traitement hiérarchisé', raw:true, html:hierHTML(g.id), open:true},
-  ...(['saureus','strepA'].includes(g.id)?[{id:'s-atx', ico:'🧪', t:'Formes toxiniques', raw:true, html:'<p>Choc toxique, DHBN, pneumonie nécrosante à S. aureus PVL : voir la fiche <a href="#p-antitox">Antibiothérapie antitoxinique (puissance comparée)</a>.</p>', open:true}]:[]),
+  ...(['saureus','strepA'].includes(g.id)?[{id:'s-atx', ico:'🧪', t:'Formes toxiniques', raw:true, html:'<p>Choc toxique, DHBN, pneumonie nécrosante à S. aureus PVL : voir la fiche <a href="#pharmaco-atx">Antibiothérapie antitoxinique (puissance comparée)</a>.</p>', open:true}]:[]),
   {id:'s-fr', ico:'📊', t:'Résistances en France (%)', raw:true, html:epiTable(((window.EPIFR||{}).germ||{})[g.id],'Antibiotique (% résistant)')+(((window.EPIFR||{}).germ||{})[g.id]?'<p class="muted small">% de souches résistantes sauf mention ; sources françaises (EARS-Net France = hémocultures/LCS ; REA-REZO = infections acquises en réanimation ; PRIMO = ville/Ehpad). L\'écologie locale prime.</p>':'')},
   {id:'s-ttt', ico:'💊', t:(window.HIER&&window.HIER[g.id])?'Commentaires thérapeutiques':'Traitement', html:g.ttt, open:!(window.HIER&&window.HIER[g.id])},
   {id:'s-tips', ico:'💡', t:'À savoir', html:g.tips, open:true},
@@ -418,7 +420,7 @@ function bindABP(root){
 /* ---------- PATHOLOGIES ---------- */
 function viewPathos(){
  const groups={}; window.PATHO.forEach(p=>{(groups[p.cat]=groups[p.cat]||[]).push(p);});
- return `<section class="card">${Object.entries(groups).map(([c,ps])=>`<h3 class="grp">${esc(c)}</h3><div class="tiles">${ps.map(p=>`<a class="tile" href="#p-${p.id}"><b>${esc(p.name)}</b><span>${esc(String(p.duree).replace(/<[^>]+>/g,'').slice(0,90))}</span></a>`).join('')}${c==='Transversal'?`<a class="tile" href="#pkpd:neurotox"><b>Encéphalopathie aux β-lactamines (neurotoxicité)</b><span>Chapitre de l'onglet PK/PD & STP</span></a>`:''}</div>`).join('')}</section>`;
+ return `<section class="card">${Object.entries(groups).map(([c,ps])=>`<h3 class="grp">${esc(c)}</h3><div class="tiles">${ps.map(p=>`<a class="tile" href="#p-${p.id}"><b>${esc(p.name)}</b><span>${esc(String(p.duree).replace(/<[^>]+>/g,'').slice(0,90))}</span></a>`).join('')}</div>`).join('')}</section>`;
 }
 function viewPatho(id){
  const p=window.PATHO.find(x=>x.id===id); if(!p) return '<p>Introuvable.</p>';
@@ -459,9 +461,10 @@ function viewExam(id){
 }
 
 /* ---------- PK/PD & STP ---------- */
-function viewPKPD(){
+function viewPKPD(){ return pharmaShell('pkpd', pkpdInner()); }
+function pkpdInner(){
  const row=(a)=>`<tr>${a.map(x=>`<td>${x}</td>`).join('')}</tr>`;
- return `<section class="card"><h2>Principes PK/PD et suivi thérapeutique pharmacologique (STP) en réanimation</h2>
+ return `<h2>Principes PK/PD et suivi thérapeutique pharmacologique (STP) en réanimation</h2>
  <div class="note"><b>Message clé (SFAR/SFPT 2019)</b> : pour les β-lactamines chez le patient de réanimation, viser une <b>concentration libre ≥ 4 à 8 × la CMI pendant 100 % de l'intervalle</b> (fC<sub>min</sub> ou fC<sub>ss</sub> ≥ 4–8 × CMI), au moyen d'une <b>dose de charge</b>, de la <b>forte posologie</b>, d'une <b>perfusion prolongée ou continue</b> et d'un <b>STP</b>. Les tableaux CA-SFM/SPILF (« forte posologie ») visent seulement 100 % fT > CMI : en réanimation, l'app privilégie la cible SFAR et propose la forte posologie par défaut.</div>
 
  <h3>1. Pourquoi 4 à 8 × CMI ?</h3>
@@ -517,8 +520,19 @@ function viewPKPD(){
 
  <h3>6. Quand demander un STP ?</h3>
  <p>Hyperclairance, EER/ECMO, obésité, CMI élevée ou BGN non fermentant, infection du SNC/endocardite/os, échec clinique, toxicité suspectée (neurologique : céfépime, pipéracilline, méropénème, imipénème), molécule à marge étroite (aminosides, vancomycine, linézolide, voriconazole).</p>
- ${refChips(['sfar_bl2019','doses25','spilf_perf25','ansm_amino11','vanco20','colis19','goutelle23','abxbmi'])}
- <h3 id="neurotox">7. Encéphalopathie (neurotoxicité) aux β-lactamines</h3>
+ ${refChips(['sfar_bl2019','doses25','spilf_perf25','ansm_amino11','vanco20','colis19','goutelle23','abxbmi'])}`;
+}
+
+/* ---------- PHARMACO : sous-onglets ---------- */
+const PHARMA_SUB=[['pkpd','PK/PD & STP','#pharmaco'],['tox','Toxicités & surveillance','#pharmaco-tox'],['atx','Antitoxiniques','#pharmaco-atx']];
+function pharmaShell(cur, inner){
+ return `<section class="card"><div class="seg wrap subtabs">${PHARMA_SUB.map(([k,l,h])=>`<a class="${k===cur?'on':''}" href="${h}">${l}</a>`).join('')}</div>${inner}</section>`;
+}
+function viewTox(){
+ const S=window.SURV||{};
+ const idx=window.DRUGS.filter(d=>S[d.id]).map(d=>`<tr><td><a href="#m-${d.id}:s-surv">${esc(d.name)}</a></td><td>${S[d.id].map(x=>x.q.replace(/<[^>]+>/g,'')).join(' · ')}</td></tr>`).join('');
+ return pharmaShell('tox', `<h2>Toxicités des anti-infectieux et surveillance</h2>
+ <h3 id="neurotox">1. Encéphalopathie (neurotoxicité) aux β-lactamines</h3>
  <div class="narbox"><b>Protocole NAR</b> : céfépime à dose méningée → <b>dosage systématique à 48 h ± EEG</b> ; PAVM tardive : céfépime possible « en faisant attention au risque d'encéphalopathie ».</div>
  <p><b>Mécanisme</b> : antagonisme GABA-A dépendant de la concentration (céfépime : passage de la barrière hémato-encéphalique).</p>
  <p><b>Présentation</b> (revue systématique des neurotoxicités du céfépime) :</p>
@@ -542,11 +556,37 @@ function viewPKPD(){
   <li>Évoquer le diagnostic devant toute dégradation neurologique inexpliquée sous β-lactamine (vigilance, myoclonies, crises) : <b>dosage (STP) et EEG</b>.</li>
   <li>Interventions rapportées : <b>arrêt ou changement de molécule</b>, réduction de dose, <b>antiépileptique</b> (benzodiazépine) si état de mal, <b>hémodialyse</b> (céfépime) dans les formes graves avec insuffisance rénale.</li>
   <li>Prévention : adapter à la fonction rénale (y compris à la récupération d'une IRA), STP chez les patients à risque (SFAR/SFPT 2019 : STP en cas de toxicité suspectée).</li>
-  <li>Imipénème : abaisse le seuil épileptogène (RCP) ; méropénème, céfépime, ceftazidime, pipéracilline et imipénème sont listés parmi les molécules justifiant un STP pour toxicité neurologique (section 6).</li>
+  <li>Imipénème : abaisse le seuil épileptogène (RCP) ; méropénème, céfépime, ceftazidime, pipéracilline et imipénème sont listés parmi les molécules justifiant un STP pour toxicité neurologique (sous-onglet PK/PD & STP, section 6).</li>
  </ul>
  ${refChips(['nar25','payne17','lamoth10','imani17','ckj_tdm24','sfar_bl2019'])}
- </section>`;
+
+ <h3 id="seuils">2. Seuils de concentration associés à une toxicité (autres classes)</h3>
+ <table class="tbl"><tr><th>Molécule</th><th>Toxicité</th><th>Seuil rapporté</th></tr>
+ <tr><td>Amikacine</td><td>Ototoxicité</td><td>Cmin > 5 mg/L</td></tr>
+ <tr><td>Gentamicine, tobramycine</td><td>Ototoxicité</td><td>Cmin > 1 mg/L</td></tr>
+ <tr><td>Linézolide</td><td>Neurotoxicité</td><td>Cmin > 2 mg/L et traitement > 4 semaines</td></tr>
+ <tr><td>Colistine</td><td>Néphrotoxicité</td><td>Cmin > 2,4 mg/L</td></tr>
+ <tr><td>Cotrimoxazole</td><td>Toxicité générale</td><td>Sulfaméthoxazole > 150 mg/L</td></tr></table>
+ <p class="muted small">Seuils issus d'une revue (Clin Kidney J 2024, tableau 2). Pour les aminosides, le protocole NAR et l'ANSM retiennent des cibles de vallée plus basses avant réinjection (amikacine < 2,5 mg/L ; gentamicine < 0,5 mg/L) : voir les fiches molécules.</p>
+ ${refChips(['ckj_tdm24','ansm_amino11'])}
+ <h3 id="survidx">3. Surveillance par molécule (index)</h3>
+ <p class="muted small">Détail (quand, pourquoi, source) dans la rubrique « Surveillance / particularités » de chaque fiche.</p>
+ <table class="tbl"><tr><th>Molécule</th><th>À surveiller</th></tr>${idx}</table>`);
 }
+function viewATX(){
+ const A=window.ANTITOX; if(!A) return pharmaShell('atx','<p>—</p>');
+ return pharmaShell('atx', `<h2>Antibiothérapie antitoxinique — puissance comparée</h2>
+ <p class="muted small">Choc toxique, DHBN/fasciite nécrosante, pneumonie nécrosante à S. aureus PVL, gangrène gazeuse.</p>
+ ${secs([
+  {id:'a-ind', ico:'🎯', t:'Indications et principe', html:A.epi, open:true},
+  {id:'a-tab', ico:'📊', t:'Puissance antitoxinique par molécule', html:A.diag, open:true},
+  {id:'a-sch', ico:'💊', t:'Schémas', html:A.proba, open:true},
+  {id:'a-arr', ico:'⏱', t:'Durée et arrêt', html:A.doc+'<br>'+A.duree, open:true}
+ ])}
+ <p>Fiches : <a href="#m-clinda">Clindamycine</a> · <a href="#m-linez">Linézolide</a> · <a href="#p-dhbn">DHBN</a> · <a href="#g-strepA">Streptocoque A</a> · <a href="#g-saureus">S. aureus</a></p>
+ <h3>Références</h3>${refList(A.refs)}`);
+}
+
 /* ---------- RÉFÉRENCES ---------- */
 function viewRefs(){
  const by={FR:[],EU:[],US:[]}; Object.entries(R).forEach(([k,r])=>by[r.lvl].push([k,r]));
@@ -558,7 +598,7 @@ function viewRefs(){
 }
 
 /* ---------- ANTIBIOGRAMME ---------- */
-const APP_VERSION='1.17';
+const APP_VERSION='1.18';
 let SAMPLE = null, sampleImages=false;
 const PHOTO = {msg:'', thumbs:[]}; let PHOTO_TARGET='abg';
 function photoMsg(h){ PHOTO.msg=h; const m=document.getElementById('photomsg'); if(m) m.innerHTML=h; }
@@ -904,6 +944,9 @@ function searchAll(q){
  const KW=[['isolement precautions contact gouttelettes air respiratoire ffp2 masque hygiene eoh','#hygiene','🧼 Hygiène : isolements et précautions'],
   ['mdo mso declaration signalement obligatoire ars point focal cerfa','#hygiene','📣 Maladies à signalement obligatoire (MSO/MDO) — ARS Nouvelle-Aquitaine'],
   ['esin e-sin ias cas groupes aes accident exposition','#hygiene','🏥 Signalement des IAS (e-SIN), AES'],
+  ['antitoxinique antitoxine toxine pvl choc toxique clindamycine','#pharmaco-atx','🧪 Antibiothérapie antitoxinique (Pharmaco)'],
+  ['encephalopathie neurotoxicite toxicite convulsion myoclonie cefepime surveillance','#pharmaco-tox','⚠️ Toxicités & surveillance des anti-infectieux (Pharmaco)'],
+  ['pkpd pharmacocinetique stp dosage cible cmi','#pharmaco','📈 PK/PD & STP (Pharmaco)'],
   ['vaccin vaccination splenectomie asplenie breche implant cochleaire tetanos rage zona shingrix prevenar pneumocoque meningocoque eculizumab ravulizumab anti-complement','#vaccins','💉 Vaccins utiles en réanimation']];
  const nq=q.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
  KW.forEach(([k,h,l])=>{ if(nq.length>=3 && k.split(' ').some(w=>w.startsWith(nq)||nq.startsWith(w)&&w.length>=4)) r.push(`<a href="${h}">${l}</a>`); });
@@ -919,10 +962,11 @@ function searchAll(q){
 }
 
 /* ---------- routage ---------- */
-const TABS = [['antibiogramme','Antibiogramme'],['molecules','Anti-infectieux'],['pkpd','PK/PD & STP'],['germes','Germes'],['pathologies','Pathologies'],['examens','Examens'],['bio','Résultats bio 📷'],['antibioprophylaxie','Antibioprophylaxie'],['hygiene','Hygiène & signalement'],['vaccins','Vaccins'],['patient','Patient'],['references','Références']];
+const TABS = [['antibiogramme','Antibiogramme'],['molecules','Anti-infectieux'],['pharmaco','Pharmaco'],['germes','Germes'],['pathologies','Pathologies'],['examens','Examens'],['bio','Résultats bio 📷'],['antibioprophylaxie','Antibioprophylaxie'],['hygiene','Hygiène & signalement'],['vaccins','Vaccins'],['patient','Patient'],['references','Références']];
 function route(){ return (location.hash||'#antibiogramme').slice(1); }
 function render(){
  let r = route(); const main=$('#main'); let anchor=''; if(r.includes(':')){ [r,anchor]=r.split(':'); }
+ if(r==='pkpd') r='pharmaco'; if(r==='p-antitox') r='pharmaco-atx';
  let html='', tab=r;
  if(r.startsWith('m-')){ html=viewMolecule(r.slice(2)); tab='molecules'; }
  else if(r.startsWith('g-')){ html=viewGerm(r.slice(2)); tab='germes'; }
@@ -932,6 +976,9 @@ function render(){
  else if(r==='pays'){ html=viewPaysList(); tab='hygiene'; }
  else if(r==='hygiene'){ html=viewHygiene(); }
  else if(r==='vaccins'){ html=viewVaccins(); }
+ else if(r==='pharmaco'){ html=viewPKPD(); }
+ else if(r==='pharmaco-tox'){ html=viewTox(); tab='pharmaco'; }
+ else if(r==='pharmaco-atx'){ html=viewATX(); tab='pharmaco'; }
  else html = ({antibiogramme:viewABG, molecules:viewMolecules, pkpd:viewPKPD, germes:viewGerms, pathologies:viewPathos, examens:viewExams, antibioprophylaxie:viewABP, bio:viewBIO, patient:viewPatient, references:viewRefs}[r]||viewABG)();
  $$('#tabs a').forEach(a=>a.classList.toggle('on', a.getAttribute('href')==='#'+tab));
  main.innerHTML = html; { const gp=$('#gpop'); if(gp) gp.hidden=true; }
