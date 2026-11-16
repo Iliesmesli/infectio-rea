@@ -76,7 +76,7 @@ window.HIER = {
  ],
  nmen: [
   {s:'Méningite, purpura fulminans', t:[
-   ['1','Céfotaxime 200 mg/kg/j ou ceftriaxone 75–100 mg/kg/j ; 5–7 j. Prophylaxie des contacts.'],
+   ['1','Céfotaxime 200 mg/kg/j ou ceftriaxone 75–100 mg/kg/j ; 5–7 j. Signalement immédiat à l\'ARS ; prophylaxie des contacts : rifampicine 600 mg × 2/j 2 j (onglet Hygiène → MSO).'],
    ['2','Amoxicilline si CMI basse (relais).'],
    ['A','Avis infectiologue : méropénème (allergie non grave), ciprofloxacine ou chloramphénicol (données anciennes).']]}
  ],

@@ -481,7 +481,7 @@ function viewRefs(){
 }
 
 /* ---------- ANTIBIOGRAMME ---------- */
-const APP_VERSION='1.14';
+const APP_VERSION='1.15';
 let SAMPLE = null, sampleImages=false;
 const PHOTO = {msg:'', thumbs:[]}; let PHOTO_TARGET='abg';
 function photoMsg(h){ PHOTO.msg=h; const m=document.getElementById('photomsg'); if(m) m.innerHTML=h; }
@@ -789,11 +789,46 @@ function viewPays(id){
  ${refChips(['hcsp_bhre19','ecdc_who_amr23','ecdc_atlas','who_glass','spf_epc16','ruppe15','ecdc_cauris'])}</section>`;
 }
 
+
+/* ---------- HYGIÈNE & SIGNALEMENT ---------- */
+let MSOQ='';
+function msoRows(q){
+ const n=s=>(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/<[^>]+>/g,'');
+ const L=window.HYG.mso.filter(r=>!q || n(r[0]+' '+r[3]).includes(n(q)));
+ return L.map(([m,u,rea,act])=>`<div class="abprow${rea?' msorea':''}"><div class="abp-p">${m} ${u?'<span class="lvb lv4">intervention urgente</span>':'<span class="lvb muted">surveillance seule</span>'}${rea?' <span class="lvb lv2">fréquent en réa</span>':''}</div>${act?`<div class="abp-a">${act}</div>`:''}</div>`).join('') || '<p class="muted">Aucune maladie trouvée.</p>';
+}
+function viewHygiene(){
+ const H=window.HYG;
+ const tbl = `<table class="tbl stack"><tr><th>Micro-organisme / situation</th><th>Précautions</th><th>Levée / durée</th><th>Remarques</th></tr>${H.table.map(r=> r[1]===''? `<tr class="grprow"><td colspan="4">${r[0]}</td></tr>` : `<tr><td data-l="Micro-organisme">${r[0]}</td><td data-l="Précautions">${r[1]}</td><td data-l="Levée">${r[2]}</td><td data-l="Remarques">${r[3]||''}</td></tr>`).join('')}</table>`;
+ return `<section class="card"><h2>🧼 Hygiène & signalement</h2>
+ ${secs([
+  {id:'h-iso', ico:'🚪', t:'Isolements : niveaux de précautions', html:H.niveaux, open:true},
+  {id:'h-tab', ico:'📋', t:'Isolement selon le micro-organisme', raw:true, html:`<div class="tblwrap">${tbl}</div>`, open:true},
+  {id:'h-bhre', ico:'🌍', t:'BMR / BHRe, dépistage et séjour à l\'étranger', raw:true, html:`<p>Règles générales (HCSP 2019 : dépistage BHRe de tout patient hospitalisé ≥ 24 h à l'étranger dans l'année, précautions jusqu'aux résultats) et préconisations par pays et par situation :</p><p><a class="btn" href="#pays">🌍 BMR/BHRe par pays</a> <a class="btn" href="#e-depistage">🧪 Dépistage BMR/BHRe</a></p>`},
+  {id:'h-mso', ico:'📣', t:'Maladies à signalement obligatoire (MSO, ex-MDO)', raw:true, html:`<div class="narbox">${fmtText(H.msoHow)}</div><div class="toolbar"><input type="search" id="msoq" placeholder="Filtrer (ex. méningocoque, légionellose…)" value="${esc(MSOQ)}"></div><div id="msolist">${msoRows(MSOQ)}</div>`, open:true},
+  {id:'h-ias', ico:'🏥', t:'Signalement des infections associées aux soins (e-SIN), cas groupés, AES', html:H.ias}
+ ])}
+ <h3>Références</h3>${refList(['sf2h_ps17','sf2h_pcc09','sf2h_resp24','sf2h_resp_faq25','hcsp_bhre19','nar25','spf_mso26','ars_na_mdo','dgs_iim18','corruss_iim25'])}</section>`;
+}
+/* ---------- VACCINS ---------- */
+function viewVaccins(){
+ return `<section class="card"><h2>💉 Vaccins utiles en réanimation</h2>
+ <p class="muted">Situations fréquentes en (neuro)réanimation. Vérifier les antécédents vaccinaux (carnet, Mon espace santé) et le calendrier en vigueur ; les vaccins inertes ne sont pas contre-indiqués par l'hospitalisation en réanimation.</p>
+ ${secs(window.VAC.map(v=>({id:v.id, ico:v.ico, t:v.t, html:v.html, raw:true, open:!!v.open})))}
+ <h3>Références</h3>${refList(['calvac26','hcsp_immuno14','has_vih25','sfar_abp24','corruss_iim25'])}</section>`;
+}
+
 /* ---------- recherche globale ---------- */
 function searchAll(q){
  q = q.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,''); if(q.length<2) return '';
  const m = s => (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').includes(q);
  const r=[];
+ const KW=[['isolement precautions contact gouttelettes air respiratoire ffp2 masque hygiene eoh','#hygiene','🧼 Hygiène : isolements et précautions'],
+  ['mdo mso declaration signalement obligatoire ars point focal cerfa','#hygiene','📣 Maladies à signalement obligatoire (MSO/MDO) — ARS Nouvelle-Aquitaine'],
+  ['esin e-sin ias cas groupes aes accident exposition','#hygiene','🏥 Signalement des IAS (e-SIN), AES'],
+  ['vaccin vaccination splenectomie asplenie breche implant cochleaire tetanos rage zona shingrix prevenar pneumocoque meningocoque eculizumab ravulizumab anti-complement','#vaccins','💉 Vaccins utiles en réanimation']];
+ const nq=q.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+ KW.forEach(([k,h,l])=>{ if(nq.length>=3 && k.split(' ').some(w=>w.startsWith(nq)||nq.startsWith(w)&&w.length>=4)) r.push(`<a href="${h}">${l}</a>`); });
  if(window.PAYS) window.PAYS.find(q).slice(0,4).forEach(c=>r.push(`<a href="#c-${c.id}">🌍 <b>${esc(c.name)}</b> — risque BMR/BHRe : ${esc(window.PAYS.LV[window.PAYS.overall(c)])}${c.c>=3?' (EPC '+esc(c.ct)+')':''}</a>`));
  window.DRUGS.forEach(d=>{ if(m(d.name)||m(d.cls)||(d.alias||[]).some(m)) r.push(`<a href="#m-${d.id}">💊 ${esc(d.name)}</a>`); });
  window.GERMS.forEach(g=>{ if(m(g.name)||(g.alias||[]).some(m)) r.push(`<a href="#g-${g.id}">🦠 ${esc(g.name)}</a>`); });
@@ -806,7 +841,7 @@ function searchAll(q){
 }
 
 /* ---------- routage ---------- */
-const TABS = [['antibiogramme','Antibiogramme'],['molecules','Anti-infectieux'],['pkpd','PK/PD & STP'],['germes','Germes'],['pathologies','Pathologies'],['examens','Examens'],['bio','Résultats bio 📷'],['antibioprophylaxie','Antibioprophylaxie'],['patient','Patient'],['references','Références']];
+const TABS = [['antibiogramme','Antibiogramme'],['molecules','Anti-infectieux'],['pkpd','PK/PD & STP'],['germes','Germes'],['pathologies','Pathologies'],['examens','Examens'],['bio','Résultats bio 📷'],['antibioprophylaxie','Antibioprophylaxie'],['hygiene','Hygiène & signalement'],['vaccins','Vaccins'],['patient','Patient'],['references','Références']];
 function route(){ return (location.hash||'#antibiogramme').slice(1); }
 function render(){
  const r = route(); const main=$('#main');
@@ -815,8 +850,10 @@ function render(){
  else if(r.startsWith('g-')){ html=viewGerm(r.slice(2)); tab='germes'; }
  else if(r.startsWith('p-')){ html=viewPatho(r.slice(2)); tab='pathologies'; }
  else if(r.startsWith('e-')){ html=viewExam(r.slice(2)); tab='examens'; }
- else if(r.startsWith('c-')){ html=viewPays(r.slice(2)); tab='germes'; }
- else if(r==='pays'){ html=viewPaysList(); tab='germes'; }
+ else if(r.startsWith('c-')){ html=viewPays(r.slice(2)); tab='hygiene'; }
+ else if(r==='pays'){ html=viewPaysList(); tab='hygiene'; }
+ else if(r==='hygiene'){ html=viewHygiene(); }
+ else if(r==='vaccins'){ html=viewVaccins(); }
  else html = ({antibiogramme:viewABG, molecules:viewMolecules, pkpd:viewPKPD, germes:viewGerms, pathologies:viewPathos, examens:viewExams, antibioprophylaxie:viewABP, bio:viewBIO, patient:viewPatient, references:viewRefs}[r]||viewABG)();
  $$('#tabs a').forEach(a=>a.classList.toggle('on', a.getAttribute('href')==='#'+tab));
  main.innerHTML = html;
@@ -829,6 +866,7 @@ function render(){
  bindPatient(main); bindABG(main); bindABP(main); bindBIO(main);
  $$('[data-molt]',main).forEach(b=>b.onclick=()=>{ molFilter.type=b.dataset.molt; render(); });
  $$('[data-paysx]',main).forEach(b=>b.onclick=()=>{ PAYSX=b.dataset.paysx; render(); });
+ { const mq=$('#msoq'); if(mq) mq.oninput=()=>{ MSOQ=mq.value; const l=$('#msolist'); if(l) l.innerHTML=msoRows(MSOQ); }; }
  { const pq=$('#paysq'); if(pq) pq.oninput=()=>{ window.__paysQ=pq.value; const t=$('#paystiles'); if(t) t.innerHTML=paysTiles(pq.value? window.PAYS.find(pq.value) : window.PAYS.list); }; }
  const mq=$('#molq',main); if(mq){ mq.oninput=()=>{ molFilter.q=mq.value.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,''); const pos=mq.selectionStart; render(); const n=$('#molq'); n.focus(); n.setSelectionRange(pos,pos); }; }
  const gq=$('#germq',main); if(gq){ gq.oninput=()=>{ germQ=gq.value.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,''); const pos=gq.selectionStart; render(); const n=$('#germq'); n.focus(); n.setSelectionRange(pos,pos); }; }
