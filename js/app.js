@@ -113,12 +113,29 @@ function bindPatient(root){
 }
 
 /* ---------- carte posologie patient pour une molécule ---------- */
+function narLine(d, regKey){
+ const N=(window.NARP||{})[d.id]; if(!N) return '';
+ const b=band(P); let t='', lab='';
+ if(regKey==='snc'){ if(!N.snc) return ''; t=N.snc; lab='doses méningées'; }
+ else if(regKey==='std' && d.dose && d.dose.high) return '';
+ else if(b==='arc'){ t=N.arc||N.n; lab='hyperclairance > 150 mL/min'; }
+ else if(b==='crrt' || b==='ihd'){ t=(N.n||'')+(N.seuil&&/CVVHF|HDI/.test(N.seuil)?' — '+N.seuil:''); lab='EER : posologie de la fonction rénale normale'+(b==='ihd'?' (à vérifier pour l\'HDI avec GPR)':''); }
+ else if(b==='m'||b==='s'||b==='es'){ t=(N.n||'')+(N.seuil?` — seuil d'adaptation ${N.seuil} : pleine dose pendant 24 h puis adaptation selon GPR (ligne « Recommandations » ci-dessous)`:''); lab='insuffisance rénale'; }
+ else { t=N.n||''; lab='fonction rénale normale'; }
+ if(!t) return '';
+ return `<div class="narline"><span class="tag tnar">🏥 Protocole NAR</span> <span class="muted">(${lab})</span> ${esc(t)}</div>`;
+}
+function narBox(d){
+ const N=(window.NARP||{})[d.id]; if(!N) return '';
+ const r=(l,v)=>v?`<tr><th>${l}</th><td>${esc(v)}</td></tr>`:'';
+ return `<div class="narbox"><h3>🏥 Protocole du service (NAR 2025) — prioritaire</h3><table class="tbl">${r('Fonction rénale normale / EER',N.n)}${r('Hyperclairance > 150 mL/min',N.arc)}${r('Insuffisance rénale',N.seuil?'Seuil d\'adaptation : '+N.seuil:'')}${r('Doses méningées',N.snc)}${r('Concentration max.',N.cmax)}${r('Stabilité',N.stab)}${r('Précisions',N.admin)}</table>${N.diff?`<div class="narfiff"><b>Écart avec les recommandations</b> : ${esc(N.diff)}</div>`:''}</div>`;
+}
 function doseBlock(d, regKey, extras=true){
  const b = band(P);
  const ob = window.OBESE[d.id]; const W=weights(P);
  const reg = (d.dose && (d.dose[regKey]||d.dose.std)) || '';
  const calcLine = window.calcDose(d.id, regKey, P);
- let html = `<div class="dose"><div><span class="tag ${regKey==='std'&&d.dose.high?'tstd':''}">${regKey==='snc'?'Dose méningée / SNC':regKey==='high'?'Posologie de départ en réanimation (forte posologie)':(d.dose.high?'Posologie standard — désescalade possible (souche S, patient stabilisé, hors SNC)':'Posologie')}</span> ${reg.includes('<br>')? fmtText(reg) : esc(reg)}</div>`;
+ let html = `<div class="dose">${narLine(d,regKey)}${(window.NARP||{})[d.id]?'<div class="recolab">Recommandations / RCP :</div>':''}<div><span class="tag ${regKey==='std'&&d.dose.high?'tstd':''}">${regKey==='snc'?'Dose méningée / SNC':regKey==='high'?'Posologie de départ en réanimation (forte posologie)':(d.dose.high?'Posologie standard — désescalade possible (souche S, patient stabilisé, hors SNC)':'Posologie')}</span> ${/<b>|<br>|<i>/.test(reg)? fmtText(reg) : esc(reg)}</div>`;
  if(calcLine) html += `<div class="calc">🧮 ${esc(calcLine)}</div>`;
  if(b && d.renal && d.renal[b]) html += `<div><span class="tag t2">${esc(BAND_L[b])}</span> ${/<b>|<br>/.test(d.renal[b])? fmtText(d.renal[b]) : esc(d.renal[b])}</div>`;
  else if(!b) html += `<div class="muted">Renseigner la fonction rénale / l'EER dans l'onglet Patient pour l'adaptation.</div>`;
@@ -147,6 +164,7 @@ function viewMolecule(id){
  const siteTxt = d.site? Object.entries(d.site).map(([k,v])=>`<span class="pill ${v}">${esc((window.SITES.find(s=>s.id===k)||{l:k}).l)}</span>`).join(' '):'';
  return `<section class="card"><a class="back" href="#molecules">← Anti-infectieux</a>
  <h2>${esc(d.name)} <small class="muted">${esc(d.cls)}</small></h2>
+ ${narBox(d)}
  <div class="patbox"><h3>Pour le patient actuel <small class="muted">(${patientSummary()})</small></h3>
   ${regs.map(k=>doseBlock(d,k,false)).join('')}
   <div class="admin"><b>Administration</b> : ${esc(d.admin.dil)} · ${esc(d.admin.duree)} · stabilité ${d.admin.stab}</div>
@@ -170,7 +188,7 @@ function viewMolecule(id){
   <dt>Diffusion LCS</dt><dd>${esc(d.lcr)}</dd>
   <dt>Sites (moteur)</dt><dd>${siteTxt}</dd>
  </dl>
- <h3>Références</h3>${refList([...d.refs, ...(window.OBESE[d.id]?['abxbmi','martson25']:[])])}
+ <h3>Références</h3>${refList([...((window.NARP||{})[d.id]?['nar25']:[]), ...d.refs.filter(x=>x!=='nar25'), ...(window.OBESE[d.id]?['abxbmi','martson25']:[])])}
  </section>`;
 }
 
@@ -359,7 +377,8 @@ function viewPatho(id){
  return `<section class="card"><a class="back" href="#pathologies">← Pathologies</a><h2>${esc(p.name)}</h2>
  ${p.div && p.div!=='—'?`<button type="button" class="badge-div" data-jump="s-div">⚖ Concordance / divergences entre recommandations</button>`:''}
  ${secs([
-  {id:'s-proba', ico:'💊', t:'Traitement probabiliste', html:p.proba, open:true},
+  ...(((window.NARPATHO||{})[p.id])? [{id:'s-nar', ico:'🏥', t:'Protocole du service (NAR 2025) — prioritaire', raw:true, html:`<div class="narbox">${fmtText(window.NARPATHO[p.id].html)}${window.NARPATHO[p.id].diff?`<div class="narfiff"><b>Écart avec les recommandations</b> : ${window.NARPATHO[p.id].diff}</div>`:''}</div>`, open:true}] : []),
+  {id:'s-proba', ico:'💊', t:(window.NARPATHO||{})[p.id]?'Recommandations — traitement probabiliste':'Traitement probabiliste', html:p.proba, open:!((window.NARPATHO||{})[p.id])},
   {id:'s-doc', ico:'🎯', t:'Traitement documenté / adaptation', html:p.doc},
   {id:'s-duree', ico:'⏱', t:'Durée', html:p.duree, open:true},
   {id:'s-diag', ico:'🔬', t:'Diagnostic / examens', html:p.diag},
@@ -368,7 +387,7 @@ function viewPatho(id){
   {id:'s-div', ico:'⚖', t:'Recommandations : concordance / divergences', html:p.div}
  ])}
  <p><button class="btn" data-site="${p.site}">➕ Sélectionner ce site dans l'antibiogramme</button></p>
- <h3>Références</h3>${refList(p.refs)}</section>`;
+ <h3>Références</h3>${refList([...((window.NARPATHO||{})[p.id]?['nar25']:[]), ...p.refs.filter(x=>x!=='nar25')])}</section>`;
 }
 
 /* ---------- EXAMENS ---------- */
@@ -462,7 +481,7 @@ function viewRefs(){
 }
 
 /* ---------- ANTIBIOGRAMME ---------- */
-const APP_VERSION='1.13';
+const APP_VERSION='1.14';
 let SAMPLE = null, sampleImages=false;
 const PHOTO = {msg:'', thumbs:[]}; let PHOTO_TARGET='abg';
 function photoMsg(h){ PHOTO.msg=h; const m=document.getElementById('photomsg'); if(m) m.innerHTML=h; }

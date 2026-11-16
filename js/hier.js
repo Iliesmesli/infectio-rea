@@ -5,14 +5,16 @@
 window.HIER = {
  saureus: [
   {s:'SAMS (méti-S)', t:[
-   ['1','Cloxacilline 2 g q4h (ou 12 g/24 h en continu) ou céfazoline 2 g q8h (bactériémie, endocardite : efficacité équivalente, mieux tolérée).'],
+   ['1','<b>Protocole NAR</b> : souche sauvage (oxa-S, amox-S) → amoxicilline ; souche à pénicillinase (amox-R) → céfazoline (bolus 2 g puis 10–12 g/24 h) ou cloxacilline (10–12 g/24 h en continu).'],
+   ['1','Recos : cloxacilline ou céfazoline (bactériémie, endocardite : efficacité équivalente, céfazoline mieux tolérée).'],
    ['1','SNC (méningite, abcès cérébral) : cloxacilline (céfazoline : diffusion insuffisante) — ou céfotaxime forte dose.'],
    ['2','Poumon : céfazoline ou amox-clav si polymicrobien ; os/matériel : + rifampicine après stérilisation des hémocultures.'],
    ['A','Allergie non grave : céfazoline. Allergie grave : daptomycine (bactériémie, endocardite) ou vancomycine ; linézolide (poumon, SNC).'],
    ['X','Vancomycine si β-lactamine possible (moins efficace sur SAMS).']]},
   {s:'SARM (méti-R)', t:[
-   ['1','Bactériémie, endocardite, cathéter : daptomycine 8–12 mg/kg > vancomycine (ASC 400–600).'],
-   ['1','Pneumonie (y compris bactériémiante) : linézolide 600 mg q12h > vancomycine. SNC : linézolide 600 mg q8h (NAR) ou vancomycine.'],
+   ['1','<b>Bactériémie, endocardite, cathéter — protocole NAR : daptomycine 10 mg/kg/j OU vancomycine (ex aequo)</b>, puis linézolide. Recos : daptomycine 6 mg/kg (RCP, ePOPI) à 8–12 mg/kg (SPILF 2025), 10 mg/kg en endocardite (ESC 2023) ; vancomycine ASC 400–600.'],
+   ['1','<b>Pneumonie / PAVM (y compris bactériémiante) — NAR : linézolide > vancomycine</b> ; daptomycine non indiquée.'],
+   ['1','<b>Méningo-ventriculite — NAR : linézolide 600 mg × 3/j ou vancomycine</b> (60 mg/kg/j, cible 30–40 mg/L).'],
    ['2','Teicoplanine (forte dose de charge) ; ceftaroline ; cotrimoxazole (os, relais) ; os/matériel : + rifampicine ou acide fusidique.'],
    ['R','Bactériémie persistante : daptomycine + ceftaroline (ou + fosfomycine) — avis infectiologue.']]}
  ],
@@ -122,9 +124,10 @@ window.HIER = {
  ],
  ecloacae: [
   {s:'Céphalosporinase basale (sauvage)', t:[
-   ['1','Céfépime (2 g q8h).'],
+   ['1','Céfépime (NAR : bolus 2 g puis 6 g/24 h en continu).'],
+   ['2','Protocole NAR : pipéracilline ou pipéracilline-tazobactam, « voire maintien d\'une C3G » (si déjà débutée et évolution favorable).'],
    ['2','Pip-tazo (infection non grave, source contrôlée), FQ, cotrimoxazole, aminoside (IU).'],
-   ['X','C3G (céfotaxime, ceftriaxone, ceftazidime) : sélection de mutants hyperproducteurs (espèce fortement mutante).']]},
+   ['X','Recos (IDSA 2024, CA-SFM) : éviter les C3G (sélection de mutants hyperproducteurs ; espèce fortement mutante) — le protocole NAR tolère leur maintien : à réserver aux infections contrôlées sans bactériémie.']]},
   {s:'Céphalosporinase hyperproduite', t:[
    ['1','Céfépime si S (CMI ≤ 1 mg/L), sinon carbapénème (méropénème ; ertapénème si non grave).'],
    ['2','Témocilline (IU), FQ/cotrimoxazole si S.']]},
@@ -199,32 +202,32 @@ window.HIER = {
  ],
  cdiff: [
   {s:'Infection à C. difficile', t:[
-   ['1','Fidaxomicine 200 mg q12h 10 j (1er épisode et récidive ; moins de récidives).'],
-   ['2','Vancomycine per os 125 mg q6h 10 j.'],
+   ['1','<b>Protocole NAR : vancomycine per os 125 mg × 4/j 10 j</b> (jusqu\'à 2 g/j si très sévère).'],
+   ['2','Fidaxomicine 200 mg × 2/j 10 j : NAR = si contre-indication à la vancomycine, échec ou rechute (coût). <i>Recos ESCMID/IDSA 2021 : fidaxomicine en 1re intention (moins de récidives).</i>'],
    ['1','Forme fulminante (choc, iléus, mégacôlon) : vancomycine per os/sonde 500 mg q6h (± lavements) + métronidazole IV 500 mg q8h ; avis chirurgical.'],
    ['R','Récidives multiples : transplantation de microbiote fécal.'],
-   ['X','Métronidazole seul (moins efficace).']]}
+   ['X','Métronidazole seul (NAR : formes peu sévères uniquement, pas en réanimation).']]}
  ],
  calbicans: [
   {s:'Candidémie / candidose invasive', t:[
-   ['1','Échinocandine (caspofungine, micafungine, anidulafungine) ; retrait du cathéter ; fond d\'œil, ETO si persistance.'],
-   ['1','Relais fluconazole à J5–7 si souche S, patient stable, hémocultures négatives.'],
-   ['2','Fluconazole d\'emblée si non grave et souche S ; AmB liposomale 3–5 mg/kg/j (échec, intolérance).'],
-   ['1','Atteinte oculaire, SNC, urinaire : fluconazole (ou AmB liposomale ± flucytosine) — les échinocandines diffusent mal.']]}
+   ['1','<b>Protocole NAR</b> : caspofungine en probabiliste puis caspofungine ou micafungine ; retrait des cathéters ; fond d\'œil, ETT, hémocultures répétées.'],
+   ['1','<b>+ 5-fluorocytosine</b> si atteinte endocardique, oculaire ou méningée (NAR) ; échinocandines contre-indiquées si atteinte urinaire, oculaire ou méningée → fluconazole ou AmB liposomale.'],
+   ['2','Recos (ECMM 2025, IDSA 2016) : relais fluconazole à J5–7 si souche S, patient stable, hémocultures négatives (non mentionné par le protocole NAR).'],
+   ['A','Contre-indication aux échinocandines : amphotéricine B liposomale 3 mg/kg/j.']]}
  ],
  cglabrata: [
   {s:'C. (N.) glabrata', t:[
-   ['1','Échinocandine.'],
-   ['2','AmB liposomale ; fluconazole 800 mg/j seulement si souche S (dose-dépendante) et en relais.'],
+   ['1','Caspofungine ou micafungine (NAR, recos).'],
+   ['2','AmB liposomale (± 5-FC si endocarde, œil, méninges) ; fluconazole 800 mg/j seulement si souche S (dose-dépendante) et en relais.'],
    ['X','Fluconazole standard en 1re intention (sensibilité diminuée fréquente).']]}
  ],
  cparapsilosis: [
   {s:'C. parapsilosis', t:[
-   ['1','Fluconazole (CMI des échinocandines élevées) ; si échinocandine débutée et évolution favorable : poursuite possible.'],
-   ['2','AmB liposomale ; retrait du cathéter (fréquemment en cause).']]}
+   ['1','<b>Fluconazole</b> (NAR ; CMI des échinocandines élevées) — J1 800 mg puis 400 mg/j.'],
+   ['2','Si échinocandine débutée et évolution favorable : poursuite possible (recos) ; AmB liposomale ; retrait du cathéter.']]}
  ],
  ckrusei: [
-  {s:'C. (P.) krusei', t:[['1','Échinocandine.'],['2','Voriconazole (relais), AmB liposomale.'],['X','Fluconazole (résistance naturelle).']]}
+  {s:'C. (P.) krusei', t:[['1','Caspofungine ou micafungine (NAR).'],['2','Voriconazole (relais), AmB liposomale.'],['X','Fluconazole (résistance naturelle).']]}
  ],
  cauris: [
   {s:'C. (C.) auris', t:[
@@ -234,9 +237,10 @@ window.HIER = {
  ],
  asp: [
   {s:'Aspergillose invasive', t:[
-   ['1','Voriconazole (STP : 2–5,5 mg/L) ou isavuconazole (moins d\'interactions et de toxicité).'],
-   ['2','AmB liposomale 3 mg/kg/j (intolérance, interactions, résistance aux azolés) ; posaconazole.'],
-   ['R','Échec : association voriconazole + anidulafungine ; échinocandine en sauvetage ; avis spécialisé.']]}
+   ['1','<b>Protocole NAR : voriconazole IV</b> (J1 6 mg/kg × 2 puis 3 mg/kg × 2/j ; relais per os à J5 ; dosage résiduel) <b>ou amphotéricine B liposomale</b> 3 mg/kg/j.'],
+   ['2','Recos (ECMM/ESCMID 2018, IDSA 2016) : isavuconazole équivalent au voriconazole (moins d\'interactions et de toxicité) ; voriconazole d\'entretien 4 mg/kg × 2/j (RCP) ; posaconazole.'],
+   ['R','<b>Réfractaire à J7 (NAR) : caspofungine + voriconazole</b> ; avis spécialisé.'],
+   ['X','Durée : NAR 15 j après apyrexie et résolution clinique — recos ≥ 6–12 semaines (écart à discuter).']]}
  ],
  mucor: [
   {s:'Mucormycose', t:[

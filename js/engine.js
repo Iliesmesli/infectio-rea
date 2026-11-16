@@ -90,9 +90,9 @@ const EXPECT = {
 const C = (d,o={})=>Object.assign({d:Array.isArray(d)?d:[d]},o);
 const RULES = {
  staph: ctx => ctx.ph.mr ? [
-   C('vanco',{note:'Référence pour SARM/SCN méti-R (Css 20–25 mg/L). Toxicité rénale : éviter l\'association pip-tazo/aminosides.'}),
-   C('dapto',{note:'Bactériémie 8–10 mg/kg, endocardite/os 10–12 mg/kg (RCP : 6) ; JAMAIS pour une pneumonie.'}),
-   C('linez',{note:'Pneumonie à SARM et SNC (diffusion LCS ≈ 70 %) ; bactériostatique : prudence en bactériémie isolée.'}),
+   C('vanco',{note:'Protocole NAR : bactériémie = vancomycine OU daptomycine (ex aequo) > linézolide ; PAVM : linézolide > vancomycine. Plateau visé 20–30 mg/L (NAR ; recos : Css 20–25). Toxicité rénale : éviter pip-tazo/aminosides associés.'}),
+   C('dapto',{note:'Protocole NAR : 10 mg/kg/j (bactériémie, peau, endocardite) — ex aequo avec la vancomycine en bactériémie (recos : RCP/ePOPI 6 mg/kg en bactériémie, ESC 10 mg/kg en endocardite). JAMAIS pour une pneumonie.'}),
+   C('linez',{note:'Protocole NAR : 1re intention en PAVM et méningo-ventriculite (600 mg × 3/j) ; en bactériémie, après vancomycine/daptomycine.'}),
    C('teico',{note:'Alternative à la vancomycine (moins néphrotoxique) — doses de charge, STP.'}),
    C('ceftaroline',{note:'Alternative/association (bactériémie réfractaire, pneumonie).'}),
    C(['cotrimox','rifam'],{note:'Association/relais (os, matériel, SNC) — rifampicine après négativation des hémocultures.'}),
@@ -237,7 +237,7 @@ const RULES = {
  hsv: ctx => [ C('aciclo'), C('foscarnet',{note:'Si résistance.'}) ], vzv: ctx => [ C('aciclo') ],
  cmv: ctx => [ C('ganci'), C('foscarnet',{note:'Résistance UL97 / myélotoxicité.'}) ],
  flu: ctx => [ C('oselta') ], covid: ctx => [ C('remdesivir',{note:'Patient sous O₂ non ventilé.'}) ],
- cdiff: ctx => [ C('fidaxo'), C('vanco',{note:'Voie ORALE 125 mg q6h.'}) ]
+ cdiff: ctx => [ C('vanco',{note:'Protocole NAR : 1re intention — voie ORALE 125 mg × 4/j 10 j (jusqu\'à 2 g/j si très sévère). Recos ESCMID 2021/IDSA 2021 : fidaxomicine en 1er.'}), C('fidaxo',{note:'Protocole NAR : alternative (contre-indication à la vancomycine, échec, rechute ; coût). Recos : 1re intention.'}) ]
 };
 const GRP_RULE = g => (['eb1','eb2','eb3'].includes(g)?'eb':g);
 
@@ -305,33 +305,27 @@ function calc(drugId, regKey, p){
  const w=dw.w, L=` (${dw.l} ${w} kg)`;
  const W=weights(p);
  switch(drugId){
-  case 'vanco': {
-    const tw = W.tbw; const dc = Math.min(3000, r50((W.obese?22.5:27.5)*tw));
-    const c = effCrcl(p); let maint='';
-    if(p.eer==='crrt') maint = '≈ 1–1,5 g/24 h en continu, ajuster à la Css';
-    else if(p.eer==='ihd') maint='500–1000 mg après chaque séance selon taux pré-dialyse';
-    else if(c){ const clv=(0.689*Math.min(c,200)+3.66)*1.44; const lo=r50(20*clv), hi=r50(25*clv); maint=`${lo}–${hi} mg/24 h en continu (cible Css 20–25 mg/L, Matzke, ClCr ${c})`; }
-    return `DC ≈ ${dc} mg (poids total ${tw} kg) puis ${maint||'selon ClCr'}`;}
-  case 'amika': return `${r50(25*w)}–${r50(30*w)} mg DUJ${L}`;
-  case 'genta': case 'tobra': return `${r10(5*w)}–${r10(7*w)} mg DUJ${L}`;
-  case 'amox': return regKey==='snc'? `${(200*w/1000).toFixed(1)} g/24 h${L}` : regKey==='high'? `${(100*w/1000).toFixed(1)}–${Math.min(12,(200*w/1000)).toFixed(1)} g/24 h${L}` : `${(50*w/1000).toFixed(1)}–${(100*w/1000).toFixed(1)} g/24 h${L}`;
-  case 'cloxa': return regKey==='snc'? `${Math.min(12,200*w/1000).toFixed(1)} g/24 h${L}` : `${(100*w/1000).toFixed(1)}–${Math.min(12,200*w/1000).toFixed(1)} g/24 h${L}`;
-  case 'cefazoline': return `${Math.min(8,80*w/1000).toFixed(1)}–${Math.min(8,100*w/1000).toFixed(1)} g/24 h${L}`;
-  case 'cefotax': return regKey==='snc'? `${Math.min(24,300*w/1000).toFixed(1)} g/24 h${L}` : '';
-  case 'ceftriax': return regKey==='snc'? `${(75*w/1000).toFixed(1)}–${(100*w/1000).toFixed(1)} g/24 h en 1–2 inj.${L}` : '';
+  case 'vanco': { // protocole NAR (prioritaire)
+    const tw = W.tbw, arc = band(p)==='arc', snc = regKey==='snc', c = effCrcl(p);
+    const dc = r50((snc?30:20)*tw), m = r50((snc?60:arc?35:30)*tw);
+    return `NAR : DC ${dc} mg (${snc?30:20} mg/kg${snc?' sur 2 h':''}) puis ${m} mg/24 h IVSE (${snc?60:arc?35:30} mg/kg/j) — cible ${snc?'30–40':'20–30'} mg/L, dosage à H24 (poids total ${tw} kg)${c&&c<40&&!p.eer?' — ⚠ ClCr < 40 : alternative à envisager (avis référent), sinon adapter sur le dosage H24':''}`;}
+  case 'amika': return `NAR : ${r50(30*w)} mg DUJ (30 mg/kg)${L} — pic 60–80, vallée < 2,5 mg/L`;
+  case 'genta': return regKey==='snc'? `NAR méningé : ${r10(5*w)} mg/j${L}` : `NAR : ${r10(8*w)} mg DUJ (8 mg/kg)${L} — pic 30–40, vallée < 0,5 mg/L`;
+  case 'tobra': return `${r10(5*w)}–${r10(7*w)} mg DUJ${L}`;
+  case 'amox': return regKey==='snc'? `NAR : 2 g puis ${(200*w/1000).toFixed(1)} g/24 h (200 mg/kg/j)${L}` : (band(p)==='arc'? 'NAR : 2 g × 4–5/j IVL 1 h' : 'NAR : 2 g × 3/j IVL 1 h');
+  case 'cloxa': return regKey==='snc'? `NAR : 2 g puis ${Math.min(12,200*w/1000).toFixed(1)} g/24 h (200 mg/kg/j)${L}` : 'NAR : 10–12 g/24 h en continu';
+  case 'cefazoline': { const arc=band(p)==='arc'; return regKey==='snc'? 'NAR : 8–12 g/24 h IVSE' : `NAR : bolus 2 g puis ${Math.min(arc?14:12,(arc?150:100)*w/1000).toFixed(1)} g/24 h en continu (${arc?150:100} mg/kg/j)${L} — TP 1×/sem`; }
+  case 'cefotax': return regKey==='snc'? `NAR : ${Math.min(24,200*w/1000).toFixed(1)} g/24 h (200 mg/kg/j) ; ${Math.min(24,300*w/1000).toFixed(1)} g/24 h si pneumocoque${L}` : (band(p)==='arc'?'NAR : bolus 2 g puis 8 g/24 h en continu':'NAR : bolus 2 g puis 6 g/24 h en continu');
+  case 'ceftriax': return regKey==='snc'? `NAR : 2 g × 3/j ; ${(100*w/1000).toFixed(1)} g/24 h si pneumocoque${L}` : '';
+  case 'ceftaz': return regKey==='snc'? `NAR : 2 g puis ${(100*w/1000).toFixed(1)} g/24 h IVSE (100 mg/kg/j)${L}` : '';
   case 'aciclo': return `${r50(10*w)} mg q8h${L}`;
   case 'cotrimox': return regKey==='high'||regKey==='snc' ? `TMP ${r10(15*w)} mg/24 h (≈ ${Math.round(15*w/80)} amp. 400/80 par 24 h)${L}` : '';
-  case 'fluco': return `DC ${Math.min(1600,r50(12*w))} mg puis ${Math.min(800,r50(6*w))} mg/j${L}`;
-  case 'vorico': return `IV : ${r10(6*w)} mg q12h × 2 puis ${r10(4*w)} mg q12h${L}`;
+  case 'fluco': return p.eer==='crrt'? `NAR (CVVHF) : ${r50(12*w)} mg J1 puis ${r50(6*w)} mg/j${L}` : p.eer==='ihd'? `NAR (HDI) : ${r50(6*w)} mg après chaque séance${L}` : 'NAR : J1 800 mg puis 400 mg/j';
+  case 'vorico': return `NAR : IV ${r10(6*w)} mg q12h × 2 puis ${r10(3*w)} mg q12h (3 mg/kg ; RCP aspergillose : ${r10(4*w)} mg = 4 mg/kg) — dosage résiduel${L}`;
   case 'amphoL': return `${r10(3*w)} mg/j (3 mg/kg) — ${r10(5*w)} mg/j (5 mg/kg)${L}`;
-  case 'dapto': {
-    const S=(window.__SITES||[]).map(siteCompat), G=window.__GERM||'';
-    const hi = S.includes('endo') || S.includes('os') || G==='efaecium' || G==='efaecalis';
-    const bac = S.includes('bact') || S.includes('kt');
-    const arc = band(p)==='arc';
-    if(!S.length) return `IcPTM ${r50(6*w)} mg · bactériémie ${r50(8*w)}–${r50(10*w)} mg · endocardite/os/ERV ${r50(10*w)}–${r50(12*w)} mg, q24h${L}`;
-    const [a,b,lab] = hi? [10,12,'endocardite / os / matériel / entérocoque'] : bac? (arc?[10,12,'bactériémie + hyperclairance']:[8,10,'bactériémie']) : (arc?[8,10,'hyperclairance']:[6,6,'IcPTM']);
-    return `${a===b? r50(a*w) : r50(a*w)+'–'+r50(b*w)} mg q24h (${a===b?a:a+'–'+b} mg/kg, ${lab})${L}${arc?' — STP conseillé':''}`; }
+  case 'dapto': { // protocole NAR : 10 mg/kg/j toutes indications ; ClCr < 30 : 1 jour sur 2
+    const c = effCrcl(p), q48 = c && c<30 && !p.eer;
+    return `NAR : ${r50(10*w)} mg (10 mg/kg) IVL 10 min ${q48?'1 jour sur 2 (ClCr < 30)':'× 1/j'}${L}`; }
   case 'teico': return `${r50(12*w)} mg q12h × 3–5 puis ${r50(12*w)} mg q24h${L}`;
   case 'ganci': return `${r10(5*w)} mg q12h (induction)${L}`;
   case '5fc': return `${r50(25*w)} mg q6h${L}`;
