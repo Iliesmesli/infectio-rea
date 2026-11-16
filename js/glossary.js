@@ -59,7 +59,7 @@ window.GLOSS = {
  'SAMS':'Staphylococcus aureus sensible à la méticilline', 'SARM':'Staphylococcus aureus résistant à la méticilline', 'SCN':'Staphylocoque à coagulase négative', 'ERV':'Entérocoque résistant à la vancomycine',
  'BLSE':'β-lactamase à spectre étendu', 'EBLSE':'Entérobactérie productrice de BLSE', 'EPC':'Entérobactérie productrice de carbapénémase', 'BHRe':'Bactérie hautement résistante émergente (EPC, ERV)',
  'BMR':'Bactérie multirésistante', 'MDR':'Multidrug-resistant (multirésistant)', 'XDR':'Extensively drug-resistant (ultrarésistant)', 'DTR':'Difficult-to-treat resistance (résistance difficile à traiter)',
- 'DTR-PA':'P. aeruginosa à résistance difficile à traiter', 'CRAB':'Acinetobacter baumannii résistant aux carbapénèmes', 'CRE':'Entérobactérie résistante aux carbapénèmes',
+ 'DTR-PA':'P. aeruginosa à résistance difficile à traiter', 'CRAB':'Acinetobacter baumannii résistant aux carbapénèmes', 'ABRI':'Acinetobacter baumannii résistant à l\'imipénème (= CRAB)', 'CRE':'Entérobactérie résistante aux carbapénèmes',
  'KPC':'Klebsiella pneumoniae carbapenemase (carbapénémase de classe A)', 'OXA-48':'Oxacillinase-48 (carbapénémase de classe D, la plus fréquente en France)', 'MBL':'Métallo-β-lactamase (classe B : NDM, VIM, IMP)',
  'NDM':'New Delhi metallo-β-lactamase', 'VIM':'Verona integron-encoded metallo-β-lactamase', 'IMP':'Imipénémase (métallo-β-lactamase)', 'AmpC':'Céphalosporinase de classe C (chromosomique ou plasmidique)',
  'HLR':'High-level resistance (résistance de haut niveau aux aminosides)', 'PSDP':'Pneumocoque de sensibilité diminuée à la pénicilline', 'BLNAR':'β-lactamase négatif, ampicilline résistant (H. influenzae)',

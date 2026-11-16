@@ -66,15 +66,15 @@ const NAT = {
  eb1:[],
  eb2:['amox','peniG'],
  eb3:['amox','amoxclav','peniG','cefazoline'],
- pseudo:['amox','amoxclav','peniG','cefazoline','cefotax','ceftriax','ertapeneme','temo','cotrimox','tigec','erava','doxy','vanco','teico','linez','dapto','clinda','metro'],
+ pseudo:['amox','amoxclav','ampsulb','peniG','cefazoline','cefotax','ceftriax','ertapeneme','temo','cotrimox','tigec','erava','doxy','vanco','teico','linez','dapto','clinda','metro'],
  acineto:['amox','amoxclav','peniG','cefazoline','cefotax','ceftriax','ertapeneme','aztreo','fosfo','temo','vanco','linez','dapto','metro'],
- steno:['merope','imipeneme','ertapeneme','amika','genta','tobra','amox','amoxclav','cefotax','ceftriax','pipetazo','temo','aztreo','fosfo','colistine'],
+ steno:['ampsulb','merope','imipeneme','ertapeneme','amika','genta','tobra','amox','amoxclav','cefotax','ceftriax','pipetazo','temo','aztreo','fosfo','colistine'],
  anaer:['amika','genta','tobra','aztreo','temo','colistine','cotrimox']
 };
 const NAT_GERM = { pmirabilis:['colistine','tigec','erava','doxy'], morganella:['colistine','tigec','erava','doxy','amoxclav'], serratia:['colistine','doxy'],
   efaecium:[], ckrusei:['fluco'], mucor:['vorico','fluco','caspo','mica','anidula'], crypto:['caspo','mica','anidula'], asp:['fluco'], fusarium:['fluco','caspo','mica','anidula'], scedo:['fluco','caspo','mica','anidula'] };
-const BL = ['peniG','amox','amoxclav','cloxa','pipetazo','temo','cefazoline','cefotax','ceftriax','ceftaz','cefepime','ceftaroline','ceftolo','cazavi','cefiderocol','merope','imipeneme','ertapeneme','imirele','merovabor','aztreo','aztavi'];
-const PENI = ['peniG','amox','amoxclav','cloxa','pipetazo','temo'];
+const BL = ['peniG','amox','amoxclav','ampsulb','cloxa','pipetazo','temo','cefazoline','cefotax','ceftriax','ceftaz','cefepime','ceftaroline','ceftolo','cazavi','cefiderocol','merope','imipeneme','ertapeneme','imirele','merovabor','aztreo','aztavi'];
+const PENI = ['peniG','amox','amoxclav','ampsulb','cloxa','pipetazo','temo'];
 
 /* ---------- sensibilité attendue si non testé ---------- */
 const EXPECT = {
@@ -206,11 +206,16 @@ const RULES = {
    C('amika',{note:'IU en monothérapie ; sinon association courte.', uriMono:true}), C('tobra',{note:'IU en monothérapie ; sinon association courte.', uriMono:true})
  ],
  acineto: ctx => [
-   C('imipeneme',{note:'Forte posologie (1 g q6h) ; hors SNC.'}), C('merope',{note:'Forte posologie (2 g q8h, 3 h) ; SNC.'}),
-   C('cotrimox',{note:'Si S.'}), C('levo',{note:'Si S (forte posologie).'}), C('amika',{note:'IU ; association.', uriMono:true}),
-   C(['cefiderocol','colistine'],{note:'CRAB : association (IDSA 2024 ; sulbactam-durlobactam non disponible en France) — avis infectiologue.', salvage:true}),
-   C(['colistine','merope'],{note:'CRAB : association colistine + méropénème forte dose si CMI ≤ 8.', salvage:true, nosens:['merope']}),
-   C('tigec',{note:'Sauvetage IIA/peau (forte dose) ; pas en bactériémie.', salvage:true}),
+   C('imipeneme',{note:'Souche S aux carbapénèmes : imipénème 1 g q6h (référence ePOPI) ; + aminoside si choc septique.'}),
+   C('merope',{note:'Souche S : méropénème 2 g q8h en 3 h — à préférer en cas de méningite.'}),
+   C('ampsulb',{note:'CRAB/ABRI, souche S : traitement de référence (groupe SPILF / ePOPI 2025) — monothérapie si infection non grave ; 6 g + 3 g q8h en 4 h.', grvPen:true}),
+   C(['ampsulb','colistine'],{note:'CRAB/ABRI grave : association d\'au moins 2 molécules actives in vitro, à base d\'ampicilline-sulbactam (SPILF / ePOPI 2025).', nosens:['ampsulb']}),
+   C(['ampsulb','tigec'],{note:'CRAB/ABRI grave : ampicilline-sulbactam + tigécycline forte dose (100 mg q12h) — pas de tigécycline seule en bactériémie.', nosens:['ampsulb']}),
+   C(['ampsulb','merope'],{note:'CRAB/ABRI grave : + méropénème seulement si CMI < 8 mg/L, forte dose, perfusion prolongée.', nosens:['ampsulb'], ifR:['imipeneme']}),
+   C('cotrimox',{note:'Si S.'}), C('levo',{note:'Si S (forte posologie) ; peu de données cliniques.'}), C('amika',{note:'IU en monothérapie ; sinon en association.', uriMono:true}),
+   C('colistine',{note:'CRAB non grave : colistine forte dose possible en monothérapie (DC 9 MU puis 4,5 MU q12h, STP). Associations colistine-carbapénème et colistine-rifampicine NON recommandées.', salvage:true, grvPen:true}),
+   C('tigec',{note:'CRAB non grave : tigécycline forte dose (DC 200 mg puis 100 mg q12h) ; pas en bactériémie.', salvage:true, grvPen:true}),
+   C('cefiderocol',{note:'Uniquement en l\'absence d\'alternative (SPILF / ePOPI 2025).', salvage:true, last:true}),
    C('erava',{note:'Sauvetage IIA uniquement ; pas en bactériémie.', salvage:true, only:['abdo']})
  ],
  steno: ctx => [
@@ -400,6 +405,7 @@ function evaluate(iso, sites, pat, opts={}){
  const out=[], excluded=[];
  cands.forEach((c,idx)=>{
    if(c.only && !sites.some(s=>c.only.includes(s))) return;
+   if(c.ifR && !c.ifR.some(x=>(iso.ast||{})[x]==='R')) return;
    // allergie
    const allergy = pat.allergy||'none';
    const bls = c.d.filter(x=>BL.includes(x));
@@ -425,6 +431,7 @@ function evaluate(iso, sites, pat, opts={}){
    if(c.pref && !sites.every(s=>c.pref.includes(s))) score += 40;
    if(c.grvPen && pat.grave) score += 120;
    if(c.top) score -= 200;
+   if(c.last) score += 150;
    // préférences de site (diffusion, bactéricidie) : ex. linézolide préféré à la vancomycine dans la pneumonie à SARM
    c.d.forEach(x=>{ const sp=SITE_PREF[x]; if(sp) sites.forEach(s=>{ const k=sp[s]!=null?s:siteCompat(s); if(sp[k]) score += sp[k]; }); });
    if(c.ecPen && germ.id==='ecloacae' && sites.includes('abdo')) score += 150;

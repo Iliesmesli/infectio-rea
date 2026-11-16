@@ -182,11 +182,18 @@ function viewGerms(){
  return `<section class="card"><div class="toolbar"><input type="search" id="germq" placeholder="Filtrer les germes…" value="${esc(germQ)}"><a class="btn" href="#pays">🌍 Risque BMR par pays</a></div>
  ${Object.entries(groups).map(([c,gs])=>`<h3 class="grp">${esc(c)}</h3><div class="tiles">${gs.map(g=>`<a class="tile" href="#g-${g.id}"><b>${esc(g.name)}</b><span>${esc(g.epi).slice(0,100)}…</span></a>`).join('')}</div>`).join('')}</section>`;
 }
+const HLAB = {'1':['1re intention','h1'],'2':['Alternative','h2'],'A':['Allergie β-lactamines','hA'],'R':['Dernier recours','hR'],'X':['À éviter','hX']};
+function hierHTML(id){
+ const H=(window.HIER||{})[id]; if(!H) return '';
+ return H.map(b=>`<div class="hier"><div class="hier-s">${b.s}</div>${b.t.map(([k,txt])=>`<div class="hrow"><span class="hlab ${HLAB[k][1]}">${HLAB[k][0]}</span><span class="htxt">${txt}</span></div>`).join('')}</div>`).join('')
+  + '<p class="muted" style="margin:6px 0 0">Ordre indicatif : toujours confronter à l\'antibiogramme, au site (diffusion), au terrain et à la fonction rénale. Doses détaillées : fiche de chaque molécule.</p>';
+}
 function viewGerm(id){
  const g=G[id]; if(!g) return '<p>Introuvable.</p>';
  return `<section class="card"><a class="back" href="#germes">← Germes</a><h2>${esc(g.name)} <small class="muted">${esc(g.cat)}</small></h2>
  ${secs([
-  {id:'s-ttt', ico:'💊', t:'Traitement', html:g.ttt, open:true},
+  {id:'s-hier', ico:'🏆', t:'Traitement hiérarchisé', raw:true, html:hierHTML(g.id), open:true},
+  {id:'s-ttt', ico:'💊', t:(window.HIER&&window.HIER[g.id])?'Commentaires thérapeutiques':'Traitement', html:g.ttt, open:!(window.HIER&&window.HIER[g.id])},
   {id:'s-tips', ico:'💡', t:'À savoir', html:g.tips, open:true},
   {id:'s-nat', ico:'🛡', t:'Résistances naturelles', html:g.nat},
   {id:'s-mech', ico:'🧬', t:'Mécanismes de résistance acquise', html:g.mech},
@@ -455,7 +462,7 @@ function viewRefs(){
 }
 
 /* ---------- ANTIBIOGRAMME ---------- */
-const APP_VERSION='1.12';
+const APP_VERSION='1.13';
 let SAMPLE = null, sampleImages=false;
 const PHOTO = {msg:'', thumbs:[]}; let PHOTO_TARGET='abg';
 function photoMsg(h){ PHOTO.msg=h; const m=document.getElementById('photomsg'); if(m) m.innerHTML=h; }
@@ -680,7 +687,7 @@ function paysRegles(){
  <tr><td>EPC OXA-48</td><td>Ceftazidime-avibactam</td></tr>
  <tr><td>EPC KPC</td><td>Ceftazidime-avibactam, méropénème-vaborbactam, imipénème-relebactam</td></tr>
  <tr><td>EPC à métallo-β-lactamase (NDM, VIM, IMP)</td><td>Ceftazidime-avibactam + aztréonam (ou aztréonam-avibactam), céfidérocol</td></tr>
- <tr><td>A. baumannii résistant aux carbapénèmes</td><td>Avis spécialisé : colistine, céfidérocol, sulbactam forte dose (sulbactam-durlobactam si disponible)</td></tr>
+ <tr><td>A. baumannii résistant aux carbapénèmes</td><td>Ampicilline-sulbactam forte dose (référence SPILF/ePOPI) ; si grave, associé à colistine, tigécycline ou méropénème (CMI < 8) ; céfidérocol en dernier recours</td></tr>
  <tr><td>SARM</td><td>Linézolide (poumon), daptomycine ou vancomycine (bactériémie)</td></tr>
  <tr><td>ERG</td><td>Linézolide, daptomycine 10–12 mg/kg</td></tr>
  <tr><td><i>C. auris</i></td><td>Échinocandine</td></tr></table>
@@ -728,7 +735,7 @@ function paysCAT(c){
  // traitement probabiliste individualisé
  if(c.b>=3) T.push(`<b>Couvrir les BLSE</b> (carbapénème) si sepsis grave ou choc — BLSE ${lvBadge(c.b)} ici. ${S}`);
  if(c.c>=3 && (hosp || x==='resid')) T.push(`<b>Si choc septique</b> : discuter avec l'infectiologue une couverture des EPC en attendant le dépistage — enzymes dominantes ici : <b>${esc(c.ct)}</b> → ${epcRegimen(c.ct)}. ${S}`);
- if(c.a>=4 && hosp) T.push(`Pneumonie / bactériémie nosocomiale chez un patient ventilé, brûlé ou blessé : penser à <b>A. baumannii</b> résistant aux carbapénèmes (avis spécialisé). <a href="#g-abaum">→ fiche</a> ${S}`);
+ if(c.a>=4 && hosp) T.push(`Pneumonie / bactériémie nosocomiale chez un patient ventilé, brûlé ou blessé : penser à <b>A. baumannii</b> résistant aux carbapénèmes → ampicilline-sulbactam forte dose + colistine ou tigécycline (SPILF/ePOPI), avis spécialisé. <a href="#g-abaum">→ fiche</a> ${S}`);
  if(c.m>=3) T.push(`<b>Ajouter un anti-SARM</b> si pneumonie nécrosante ou bactériémie à cocci Gram + : linézolide (poumon), daptomycine/vancomycine (bactériémie). <a href="#g-saureus">→ fiche</a> ${S}`);
  if(c.v>=3 && hosp) T.push(`Infection grave à entérocoque : penser à l'<b>ERG</b> → linézolide ou daptomycine 10–12 mg/kg. <a href="#g-efaecium">→ fiche</a> ${S}`);
  if(c.k>=2 && hosp) T.push(`Candidémie : <b>échinocandine</b> (C. auris souvent résistant au fluconazole). <a href="#g-cauris">→ fiche</a> ${S}`);
@@ -774,7 +781,8 @@ function searchAll(q){
  window.PATHO.forEach(p=>{ if(m(p.name)||m(p.cat)) r.push(`<a href="#p-${p.id}">🩺 ${esc(p.name)}</a>`); });
  window.EXAMS.forEach(e=>{ if(m(e.name)) r.push(`<a href="#e-${e.id}">🔬 ${esc(e.name)}</a>`); });
  (window.ABP?window.ABP.specs:[]).forEach(s=>s.rows.forEach(x=>{ if(m(x.p.replace(/<[^>]+>/g,''))) r.push(`<a href="#antibioprophylaxie">🛡 ABP — ${esc(x.p.replace(/<[^>]+>/g,''))}</a>`); }));
- Object.keys(GL).forEach(k=>{ if(m(k)||m(GL[k])) r.push(`<a href="#references">🔤 <b>${esc(k)}</b> — ${esc(GL[k])}</a>`); });
+ const GLMAP={CRAB:'g-abaum',ABRI:'g-abaum',ABRC:'g-abaum',SARM:'g-saureus',MRSA:'g-saureus',SAMS:'g-saureus',ERV:'g-efaecium',ERG:'g-efaecium',VRE:'g-efaecium',EPC:'g-kpneu',CPE:'g-kpneu',KPC:'g-kpneu',NDM:'g-kpneu',MBL:'g-kpneu','OXA-48':'g-kpneu',BHRe:'pays',BMR:'pays',DTR:'g-paeru','DTR-PA':'g-paeru',CRE:'g-kpneu',PARC:'g-paeru',ICD:'g-cdiff',PCP:'g-pcp',PVL:'g-saureus'};
+ Object.keys(GL).forEach(k=>{ if(m(k)||m(GL[k])){ const t=GLMAP[k]; r.push(t? `<a href="#${t}">🦠 <b>${esc(k)}</b> — ${esc(GL[k])} → fiche</a>` : `<a href="#references">🔤 <b>${esc(k)}</b> — ${esc(GL[k])}</a>`); } });
  return r.slice(0,16).join('') || '<span class="muted">Aucun résultat</span>';
 }
 
@@ -814,6 +822,7 @@ function init(){
  const q=$('#q'), res=$('#qres');
  q.oninput=()=>{ res.innerHTML=searchAll(q.value); res.hidden=!q.value; };
  res.onclick=()=>{ res.hidden=true; q.value=''; };
+ q.onkeydown=e=>{ if(e.key==='Enter'){ const a=res.querySelector('a'); if(a){ e.preventDefault(); location.hash=a.getAttribute('href'); res.hidden=true; q.value=''; q.blur(); } } };
  document.addEventListener('click',e=>{ if(!e.target.closest('.search')) res.hidden=true; });
  $('#patchip').onclick=()=>location.hash='#patient';
  document.addEventListener('click', gpop);
