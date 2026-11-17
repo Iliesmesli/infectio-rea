@@ -207,7 +207,7 @@ function viewMolecules(){
  return `<section class="card"><div class="toolbar">
   <div class="seg">${[['all','Tous'],['ab','Antibactériens'],['af','Antifongiques'],['av','Antiviraux']].map(([k,l])=>`<button class="${molFilter.type===k?'on':''}" data-molt="${k}">${l}</button>`).join('')}</div>
   <input type="search" id="molq" placeholder="Filtrer (nom, classe, abréviation)…" value="${esc(molFilter.q)}"></div>
-  <div class="transv"><b>Fiches transversales</b> : <a href="#pharmaco-atx">🧪 Antitoxiniques</a> · <a href="#pharmaco-bio">🧫 Anti-biofilm</a> · <a href="#pharmaco-tox">⚠️ Toxicités & surveillance (encéphalopathie aux β-lactamines…)</a> · <a href="#pharmaco">📈 PK/PD & STP</a></div>
+  <div class="transv"><b>Fiches transversales</b> : <a href="#pharmaco-atx">🧪 Antitoxiniques</a> · <a href="#pharmaco-bio">🧫 Anti-biofilm</a> · <a href="#pharmaco-ivt">💉 Intraventriculaire</a> · <a href="#pharmaco-tox">⚠️ Toxicités & surveillance (encéphalopathie aux β-lactamines…)</a> · <a href="#pharmaco">📈 PK/PD & STP</a></div>
   ${Object.entries(groups).map(([cls,ds])=>`<h3 class="grp">${esc(cls)}</h3><div class="tiles">${ds.map(d=>`<a class="tile" href="#m-${d.id}"><b>${esc(d.name)}</b><span>${(()=>{const t=(d.dose&&(d.dose.high||d.dose.std))||''; return esc(t.slice(0,90))+(t.length>90?'…':'');})()}</span></a>`).join('')}</div>`).join('') || '<p class="muted">Aucun résultat.</p>'}
  </section>`;
 }
@@ -232,6 +232,7 @@ function viewMolecule(id){
   ${d.dose&&d.dose.other?`<div class="dose">${esc(d.dose.other)}</div>`:''}
  </div>
  ${['cloxa','cefazoline'].includes(d.id)?'<div class="admin"><b>Cloxacilline ou céfazoline ?</b> <a href="#pharmaco-tox:cfzclox">→ essais CloCeBa et SNAP (efficacité, néphrotoxicité)</a></div>':''}
+ ${['colis','amika','genta','tobra','vanco','dapto','polyB'].includes(d.id)?'<div class="admin"><b>Voie intraventriculaire</b> : <a href="#pharmaco-ivt">→ doses, débit de DVE, technique, toxicité</a></div>':''}
  ${['rifam','cipro','levo','dapto','fosfo'].includes(d.id)?'<div class="admin"><b>Anti-biofilm</b> : <a href="#pharmaco-bio">→ rôle sur matériel, règles d\'association, situations</a></div>':''}
  ${['clinda','linez','rifam'].includes(d.id)?'<div class="admin"><b>Antitoxinique</b> : <a href="#pharmaco-atx">→ puissance comparée et schémas</a></div>':''}
  ${survHTML(d.id)}
@@ -485,6 +486,7 @@ function viewPatho(id){
   {id:'s-proba', ico:'💊', t:(window.NARPATHO||{})[p.id]?'Recommandations — traitement probabiliste':'Traitement probabiliste', html:p.proba, open:!((window.NARPATHO||{})[p.id])},
   {id:'s-doc', ico:'🎯', t:'Traitement documenté / adaptation', html:p.doc},
   {id:'s-duree', ico:'⏱', t:'Durée', html:p.duree, open:true},
+  ...(p.id==='ventri'?[{id:'s-ivt', ico:'💉', t:'Antibiothérapie intraventriculaire', raw:true, html:'<p>Indications, doses (IDSA 2017, RCP colistiméthate), adaptation au débit de la DVE, technique et toxicité : <a href="#pharmaco-ivt">Pharmaco › Intraventriculaire</a>.</p>', open:true}]:[]),
   ...(['ventri','bact_kt','endoc'].includes(p.id)?[{id:'s-biof', ico:'🧫', t:'Matériel conservé : anti-biofilm', raw:true, html:'<p>Voir la fiche <a href="#pharmaco-bio">Antibiothérapie anti-biofilm</a> (rifampicine, fluoroquinolones, verrous antibiotiques, durées).</p>', open:false}]:[]),
   {id:'s-annexe', ico:'🧩', t:'Mesures associées (hors anti-infectieux)', raw:true, html:annexHTML(p.id), open:true},
   {id:'s-diag', ico:'🔬', t:'Diagnostic / examens', html:p.diag},
@@ -579,7 +581,7 @@ function pkpdInner(){
 }
 
 /* ---------- PHARMACO : sous-onglets ---------- */
-const PHARMA_SUB=[['pkpd','PK/PD & STP','#pharmaco'],['tox','Toxicités & surveillance','#pharmaco-tox'],['atx','Antitoxiniques','#pharmaco-atx'],['bio','Anti-biofilm','#pharmaco-bio']];
+const PHARMA_SUB=[['pkpd','PK/PD & STP','#pharmaco'],['tox','Toxicités & surveillance','#pharmaco-tox'],['atx','Antitoxiniques','#pharmaco-atx'],['bio','Anti-biofilm','#pharmaco-bio'],['ivt','Intraventriculaire','#pharmaco-ivt']];
 function pharmaShell(cur, inner){
  return `<section class="card"><div class="seg wrap subtabs">${PHARMA_SUB.map(([k,l,h])=>`<a class="${k===cur?'on':''}" href="${h}">${l}</a>`).join('')}</div>${inner}</section>`;
 }
@@ -718,6 +720,23 @@ function viewBIOF(){
  <h3>Références</h3>${refList(A.refs)}`);
 }
 
+function viewIVT(){
+ const A=window.IVTH; if(!A) return pharmaShell('ivt','<p>—</p>');
+ return pharmaShell('ivt', `<h2>Antibiothérapie intrathécale et intraventriculaire</h2>
+ <p class="muted small">Ventriculites et méningites associées aux soins (DVE, dérivation, réservoir d'Ommaya). Voie hors AMM sauf colistiméthate.</p>
+ ${secs([
+  {id:'i-ind', ico:'🎯', t:'Indications et principes', raw:true, html:A.indic, open:true},
+  {id:'i-dos', ico:'💉', t:'Molécules et doses', raw:true, html:A.doses, open:true},
+  {id:'i-adapt', ico:'📏', t:'Adapter au débit de la DVE et aux ventricules', raw:true, html:A.adapt, open:true},
+  {id:'i-tech', ico:'🧪', t:'Préparation et administration', raw:true, html:A.tech, open:true},
+  {id:'i-tox', ico:'⚠️', t:'Effets indésirables', raw:true, html:A.tox, open:true},
+  {id:'i-dur', ico:'⏱', t:'Durée et surveillance', raw:true, html:A.duree, open:true},
+  {id:'i-ev', ico:'📚', t:'Niveau de preuve', raw:true, html:A.preuves, open:false}
+ ])}
+ <p>Fiches : <a href="#p-ventri">Ventriculite</a> · <a href="#m-colis">Colistine</a> · <a href="#m-amika">Amikacine</a> · <a href="#m-genta">Gentamicine</a> · <a href="#m-vanco">Vancomycine</a> · <a href="#m-dapto">Daptomycine</a> · <a href="#pharmaco-bio">Anti-biofilm</a></p>
+ <h3>Références</h3>${refList(A.refs)}`);
+}
+
 /* ---------- RÉFÉRENCES ---------- */
 function viewRefs(){
  const by={FR:[],EU:[],US:[]}; Object.entries(R).forEach(([k,r])=>(by[r.lvl]||by.EU).push([k,r]));
@@ -729,7 +748,7 @@ function viewRefs(){
 }
 
 /* ---------- ANTIBIOGRAMME ---------- */
-const APP_VERSION='1.22';
+const APP_VERSION='1.23';
 let SAMPLE = null, sampleImages=false;
 const PHOTO = {msg:'', thumbs:[]}; let PHOTO_TARGET='abg';
 function photoMsg(h){ PHOTO.msg=h; const m=document.getElementById('photomsg'); if(m) m.innerHTML=h; }
@@ -1076,6 +1095,7 @@ function searchAll(q){
   ['mdo mso declaration signalement obligatoire ars point focal cerfa','#hygiene','📣 Maladies à signalement obligatoire (MSO/MDO) — ARS Nouvelle-Aquitaine'],
   ['esin e-sin ias cas groupes aes accident exposition','#hygiene','🏥 Signalement des IAS (e-SIN), AES'],
   ['cloxacilline céfazoline cefazoline cloceba snap néphrotoxicité sams','#pharmaco-tox:cfzclox','⚖️ Cloxacilline vs céfazoline (CloCeBa, SNAP)'],
+  ['intrathécal intrathecal intraventriculaire ivt ith dve ommaya colistine intraventriculaire','#pharmaco-ivt','💉 Antibiothérapie intrathécale / intraventriculaire (Pharmaco)'],
   ['biofilm anti-biofilm antibiofilm matériel dve dérivation verrou lock rifampicine prothèse','#pharmaco-bio','🧫 Antibiothérapie anti-biofilm (Pharmaco)'],
   ['antitoxinique antitoxine toxine pvl choc toxique clindamycine','#pharmaco-atx','🧪 Antibiothérapie antitoxinique (Pharmaco)'],
   ['encephalopathie neurotoxicite toxicite convulsion myoclonie cefepime surveillance','#pharmaco-tox','⚠️ Toxicités & surveillance des anti-infectieux (Pharmaco)'],
@@ -1113,6 +1133,7 @@ function render(){
  else if(r==='pharmaco-tox'){ html=viewTox(); tab='pharmaco'; }
  else if(r==='pharmaco-atx'){ html=viewATX(); tab='pharmaco'; }
  else if(r==='pharmaco-bio'){ html=viewBIOF(); tab='pharmaco'; }
+ else if(r==='pharmaco-ivt'){ html=viewIVT(); tab='pharmaco'; }
  else html = ({antibiogramme:viewABG, molecules:viewMolecules, pkpd:viewPKPD, germes:viewGerms, pathologies:viewPathos, examens:viewExams, antibioprophylaxie:viewABP, bio:viewBIO, patient:viewPatient, references:viewRefs}[r]||viewABG)();
  $$('#tabs a').forEach(a=>a.classList.toggle('on', a.getAttribute('href')==='#'+tab));
  main.innerHTML = html; { const gp=$('#gpop'); if(gp) gp.hidden=true; }

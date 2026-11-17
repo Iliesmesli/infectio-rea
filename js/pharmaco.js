@@ -52,3 +52,60 @@ window.ANTIBIOFILM = {
  </ul>`,
  refs:['spilf_ioa09','zimmerli98','rodriguez14','arrest18','esc_ei23','spilf_aepei25','idsa_vent17','idsa_crbsi09','idsa_cand16','souweine15','lebeaux16','rifam_rhum12','ansm_rifam24']
 };
+
+/* Antibiothérapie intrathécale / intraventriculaire — onglet Pharmaco > Intraventriculaire */
+window.IVTH = {
+ indic:`<ul class="pts">
+  <li><b>Toujours en complément</b> d'une antibiothérapie IV à dose méningée, jamais seule.</li>
+  <li><b>Indications</b> : ventriculite ou méningite associée aux soins qui <b>répond mal au traitement systémique seul</b> (IDSA 2017, recommandation forte, faible niveau de preuve) ; en pratique, BGN multi- ou ultrarésistant (<i>A. baumannii</i>, <i>P. aeruginosa</i>, entérobactérie carbapénèmase) sensible seulement à la colistine ou aux aminosides, ou échec clinique ou microbiologique.</li>
+  <li><b>Traitement de sauvetage / dernier recours</b> : aucune molécule n'a d'AMM pour cette voie, hors colistiméthate (<a class="recolink noabbr" href="https://base-donnees-publique.medicaments.gouv.fr/medicament/65283158/extrait" target="_blank" rel="noopener">RCP</a> : « données limitées »).</li>
+  <li><b>Pas de protocole NAR spécifique</b> : décision au cas par cas avec neurochirurgien, infectiologue et pharmacien.</li>
+ </ul>`,
+ doses:`<table class="tbl tx"><tr><th>Molécule</th><th>Dose intraventriculaire quotidienne (adulte)</th><th>Remarques</th></tr>
+  <tr><td><b>Colistiméthate sodique</b></td><td><b>125 000 UI/j</b> (= 10 mg de colistiméthate ≈ 4 mg de colistine base)</td><td><a class="recolink noabbr" href="https://base-donnees-publique.medicaments.gouv.fr/medicament/65283158/extrait" target="_blank" rel="noopener">RCP</a> : flacon de 1 MUI, solution reconstituée à 125 000 UI/mL, volume injecté ≤ 1 mL ; voie intrathécale lombaire : ne pas dépasser la dose intraventriculaire. IDSA 2017 : « colistine (colistiméthate) 10 mg ».</td></tr>
+  <tr><td>Polymyxine B</td><td>5 mg/j</td><td>IDSA 2017.</td></tr>
+  <tr><td><b>Amikacine</b></td><td>5–50 mg/j (usuel 30 mg)</td><td>IDSA 2017.</td></tr>
+  <tr><td><b>Gentamicine</b></td><td>4–8 mg/j</td><td>IDSA 2017. Une série sans rechute avec gentamicine intraventriculaire + méropénème IV.</td></tr>
+  <tr><td>Tobramycine</td><td>5–20 mg/j</td><td>IDSA 2017.</td></tr>
+  <tr><td><b>Vancomycine</b></td><td>5–20 mg/j (10 ou 20 mg dans la plupart des études)</td><td>IDSA 2017 ; revue systématique : sûre et efficace (méthodologie limitée).</td></tr>
+  <tr><td>Daptomycine</td><td>2–5 mg/j</td><td>IDSA 2017 : cas isolés (Gram + résistants).</td></tr>
+  <tr><td>Amphotéricine B désoxycholate</td><td>0,01–0,5 mg dans 2 mL de G5 %</td><td>IDSA 2017 : rarement nécessaire (retrait du matériel trop risqué ou échec du traitement systémique).</td></tr>
+  <tr><td><b>β-lactamines</b></td><td><b>Non</b></td><td>Pénicillines et céphalosporines : neurotoxicité importante par voie intrathécale (IDSA 2017). Méropénem : données pharmacocinétiques seulement (10 mg q12h), injection unique quotidienne probablement insuffisante (revue 2023).</td></tr></table>
+  <p class="muted small">Autres molécules rapportées (tigécycline, ceftazidime, lévofloxacine…) : cas isolés, effets indésirables décrits — hors recommandations.</p>`,
+ adapt:`<table class="tbl tx"><tr><th>Débit de la DVE (mL/24 h)</th><th>Fréquence (IDSA 2017)</th></tr>
+  <tr><td>&lt; 50</td><td>Toutes les 72 h</td></tr>
+  <tr><td>50–100</td><td>Toutes les 48 h</td></tr>
+  <tr><td>100–150</td><td>Toutes les 24 h</td></tr>
+  <tr><td>150–200</td><td>Toutes les 24 h, dose + 5 mg (vancomycine) ou + 1 mg (gentamicine)</td></tr>
+  <tr><td>200–250</td><td>Toutes les 24 h, dose + 10 mg (vancomycine) ou + 2 mg (gentamicine)</td></tr></table>
+  <table class="tbl tx"><tr><th>Taille des ventricules (adulte)</th><th>Vancomycine</th><th>Gentamicine</th></tr>
+  <tr><td>Fentes (« slit »)</td><td>5 mg</td><td>2 mg</td></tr>
+  <tr><td>Normale</td><td>10 mg</td><td>3 mg</td></tr>
+  <tr><td>Dilatés</td><td>15–20 mg</td><td>4–5 mg</td></tr></table>
+  <ul class="pts"><li><b>Dosage dans le LCS</b> : ajuster dose et intervalle pour une concentration résiduelle de <b>10–20 × la CMI</b> (IDSA 2017, forte/faible) — mais cibles mal définies et dosage non disponible en routine pour toutes les molécules (revue 2023).</li></ul>`,
+ tech:`<ul class="pts">
+  <li><b>Voie</b> : DVE ou réservoir d'Ommaya. Préférer l'intraventriculaire à l'intrathécal lombaire : concentrations ventriculaires 2 à 10 fois plus élevées ; pic lombaire retardé et variable (GERICCO 2024).</li>
+  <li><b>Préparation</b> : produit <b>sans conservateur</b> (IDSA 2017), asepsie stricte (chaque manipulation de la DVE expose au risque infectieux), double contrôle de la dilution — des erreurs de dilution ont causé des accidents graves (revue 2023).</li>
+  <li><b>Injection</b> (GERICCO 2024) : prélever 5 mL de LCS, injecter 5 mL (NaCl 0,9 % ou eau), sauf colistiméthate (≤ 1 mL de solution à 125 000 UI/mL, <a class="recolink noabbr" href="https://base-donnees-publique.medicaments.gouv.fr/medicament/65283158/extrait" target="_blank" rel="noopener">RCP</a>).</li>
+  <li><b>Clampage de la DVE 15–60 min</b> après l'injection (IDSA 2017), selon la tolérance de la PIC.</li>
+  <li><b>Rythme</b> : en général une injection par jour (demi-vie longue dans le LCS), à espacer si faible débit de drainage (tableau ci-dessus).</li>
+ </ul>`,
+ tox:`<ul class="pts">
+  <li><b>Ventriculite ou méningite chimique</b> (aseptique) : complication la plus fréquente (≈ 13 % dans une méta-analyse citée par la revue de 2023) ; colistine : 11 % dans la revue de Karaiskos 2013, réversible. <a class="recolink noabbr" href="https://base-donnees-publique.medicaments.gouv.fr/medicament/65283158/extrait" target="_blank" rel="noopener">RCP colistiméthate</a> : signes d'irritation méningée possibles.</li>
+  <li>Piège : la ventriculite chimique imite une rechute (cellularité, protéinorachie) → s'appuyer sur la culture du LCS.</li>
+  <li><b>Convulsions</b> : β-lactamines contre-indiquées par cette voie (IDSA 2017).</li>
+  <li>Polymyxines, gentamicine, vancomycine : pas de toxicité grave ou irréversible rapportée aux doses recommandées (IDSA 2017).</li>
+ </ul>`,
+ duree:`<ul class="pts">
+  <li><b>Arrêt après 48–72 h si le LCS est stérilisé</b> ; sinon jusqu'à 10–14 jours ; plus long pour les infections fongiques (GERICCO 2024, d'après Nau 2020). Durée de l'antibiothérapie IV : voir la fiche Ventriculite.</li>
+  <li>En pratique, durée médiane observée inférieure à une semaine (étude de pratiques).</li>
+  <li>Cultures du LCS de contrôle quotidiennes ou rapprochées jusqu'à stérilisation.</li>
+ </ul>`,
+ preuves:`<ul class="pts">
+  <li><b>Méta-analyse 2024</b> (18 études, 602 patients, BGN post-neurochirurgicaux) : bénéfice sur la mortalité et la stérilisation, <b>surtout pour les BGN ultrarésistants</b> ; pas plus d'effets indésirables aux doses recommandées.</li>
+  <li><b>Méta-analyse 2018</b> (Karvouniaris, BGN) : pas de supériorité globale de l'association intraventriculaire + IV ; preuve faible d'un intérêt pour les bactéries résistantes aux carbapénèmes.</li>
+  <li><b>Colistine et <i>A. baumannii</i></b> (Karaiskos 2013, 83 épisodes) : 89 % de succès.</li>
+  <li>Uniquement des études observationnelles, hétérogènes, avec biais d'indication. Question ouverte à l'ère des nouvelles β-lactamines (2024).</li>
+ </ul>`,
+ refs:['idsa_vent17','rcp_colis_ivt','gericco24','muller23','li24_ivt','karvouniaris18','karaiskos13']
+};

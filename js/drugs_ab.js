@@ -619,7 +619,7 @@ window.DRUGS.push(
  prec:'Toujours en association (IDSA/ESCMID). Éviter les autres néphrotoxiques.',
  inter:'Aminosides, vancomycine, curares.',
  admin:{dil:'NaCl 0,9 % (50–100 mL)', duree:'30–60 min', stab:'18–25 °C : NaCl 1,6 mg/mL (0,02 MUI/mL) 24 h. (SPILF/SFPC 2025 : ≥ 90 % de la concentration initiale)'},
- dose:{std:'DC 9 MUI puis 4,5 MUI q12h (fonction rénale normale) ; dose journalière selon ClCr (consensus 2019)', snc:'Intraventriculaire : 10 mg CBA/j (≈ 125 000 UI) (IDSA 2017) + IV'},
+ dose:{std:'DC 9 MUI puis 4,5 MUI q12h (fonction rénale normale) ; dose journalière selon ClCr (consensus 2019)', snc:'Intraventriculaire : <b>125 000 UI/j</b> de colistiméthate (= 10 mg de colistiméthate ≈ 4 mg CBA ; RCP, IDSA 2017) + IV — voir Pharmaco › Intraventriculaire'},
  renal:{arc:'DC 9 MUI puis ≈ 10,9 MUI/j en 2 doses (ClCr ≥ 90)', n:'DC 9 MUI puis : 80–89 → 10,3 ; 70–79 → 9,0 ; 60–69 → 8,35 ; 50–59 → 7,4 MUI/j (en 2 doses)', m:'40–49 → 6,65 ; 30–39 → 5,9 MUI/j (en 2 doses)', s:'20–29 → 5,3 ; 10–19 → 4,85 MUI/j (en 2 doses)', es:'5–9 → 4,4 ; < 5 → 3,95 MUI/j', crrt:'DC 9 MUI puis 13,3 MUI/j (440 mg CBA) en 2–3 doses (consensus 2019)', ihd:'DC 9 MUI puis 3,95 MUI/j ; + 1,2–1,6 MUI en fin de séance'},
  tdm:'Centres experts (Css colistine 2 mg/L).', lcr:'Très faible → voie intraventriculaire.',
  site:{snc:'caution',pulm:'caution',uri:'ok',bact:'caution',abdo:'caution',peau:'caution',os:'caution',endo:'caution',kt:'caution'},

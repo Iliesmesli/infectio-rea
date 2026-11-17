@@ -1,5 +1,8 @@
 /* GLOSSAIRE DES ACRONYMES — affichés au survol / toucher dans toute l'app et listés dans l'onglet Références */
 window.GLOSS = {
+ 'IVT':"Intraventriculaire (injection dans les ventricules cérébraux, par DVE ou réservoir)",
+ 'ITH':"Intrathécal (injection dans l'espace sous-arachnoïdien, en pratique lombaire)",
+ 'Ommaya':"Réservoir d'Ommaya : réservoir sous-cutané relié à un cathéter intraventriculaire, permettant ponctions et injections",
  'AEPEI':"Association pour l'étude et la prévention de l'endocardite infectieuse",
  'ARREST':"Adjunctive Rifampicin to Reduce Early mortality from STaphylococcus aureus bacteraemia (essai randomisé britannique, Lancet 2018)",
  'ORa':"Odds ratio ajusté",
