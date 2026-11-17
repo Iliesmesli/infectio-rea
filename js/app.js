@@ -455,14 +455,15 @@ function viewABP(){
    <div class="abpline"><span class="k">💉</span><span>${NO.test(r.a)?`<span class="pill">${r.a.replace(/^Pas d'antibioprophylaxie/,"Pas d'antibioprophylaxie")}</span>`:`<b>${r.a}</b>`}</span></div>
    ${r.r&&r.r!=='—'?`<div class="abpline"><span class="k">↻</span><span>Réinjection : ${r.r}</span></div>`:''}
    ${r.al&&r.al!=='—'?`<div class="abpline"><span class="k">⚠</span><span>Allergie : ${r.al}</span></div>`:''}
+   ${r.nar?`<div class="narfiff"><b>NAR</b> : ${r.nar}</div>`:''}
  </div>`;
  return `<section class="card"><h2>Antibioprophylaxie en chirurgie et médecine interventionnelle (adultes)</h2>
- <p class="muted small">RFE SFAR/SPILF 2024 (V2.0 du 22/05/2024) — ${A.specs.reduce((n,s)=>n+s.rows.length,0)} situations. Tapez un geste (ex. « DVE », « craniotomie », « gastrostomie », « césarienne »).</p>
+ <p class="muted small">RFE SFAR/SPILF 2024 (V2.0 du 22/05/2024) ; <b>neurochirurgie et radiologie interventionnelle : protocoles du service (NAR, v2 2026), prioritaires</b> — ${A.specs.reduce((n,s)=>n+s.rows.length,0)} situations. Tapez un geste (ex. « DVE », « craniotomie », « gastrostomie », « césarienne »).</p>
  <input id="abpq" class="search-in" type="search" placeholder="Rechercher un geste, une spécialité, une molécule…" autocomplete="off">
  <details class="sec" id="abp-gen"><summary><span class="ico">📘</span>Principes généraux, doses, obésité, BLSE, allergie</summary><div class="secbody">${fmt(A.gen)}</div></details>
- ${A.specs.map((s,i)=>`<details class="sec abpspec" id="abp-${i}"><summary><span class="ico">🔪</span>${esc(s.s)} <span class="muted small" style="font-weight:400">(${s.rows.length})</span></summary><div class="secbody">${s.rows.map(row).join('')}</div></details>`).join('')}
+ ${A.specs.map((s,i)=>`<details class="sec abpspec" id="abp-${i}"><summary><span class="ico">${s.nar?'🏥':'🔪'}</span>${esc(s.s)} ${s.nar?'<span class="tag tnar">NAR</span>':''} <span class="muted small" style="font-weight:400">(${s.rows.length})</span></summary><div class="secbody">${s.nar?`<div class="narbox">${s.nar}${refChips(['nar_abp26','sfar_abp24'])}</div>`:''}${s.rows.map(row).join('')}</div></details>`).join('')}
  <p id="abpnone" class="muted" hidden>Aucun geste trouvé — vérifier l'orthographe ou consulter la RFE.</p>
- <h3>Référence</h3>${refList(['sfar_abp24'])}</section>`;
+ <h3>Références</h3>${refList(['nar_abp26','sfar_abp24'])}</section>`;
 }
 function bindABP(root){
  const q=$('#abpq',root); if(!q) return;
@@ -748,7 +749,7 @@ function viewRefs(){
 }
 
 /* ---------- ANTIBIOGRAMME ---------- */
-const APP_VERSION='1.23';
+const APP_VERSION='1.24';
 let SAMPLE = null, sampleImages=false;
 const PHOTO = {msg:'', thumbs:[]}; let PHOTO_TARGET='abg';
 function photoMsg(h){ PHOTO.msg=h; const m=document.getElementById('photomsg'); if(m) m.innerHTML=h; }
@@ -1095,6 +1096,7 @@ function searchAll(q){
   ['mdo mso declaration signalement obligatoire ars point focal cerfa','#hygiene','📣 Maladies à signalement obligatoire (MSO/MDO) — ARS Nouvelle-Aquitaine'],
   ['esin e-sin ias cas groupes aes accident exposition','#hygiene','🏥 Signalement des IAS (e-SIN), AES'],
   ['cloxacilline céfazoline cefazoline cloceba snap néphrotoxicité sams','#pharmaco-tox:cfzclox','⚖️ Cloxacilline vs céfazoline (CloCeBa, SNAP)'],
+  ['antibioprophylaxie radiologie interventionnelle gastrostomie néphrostomie jj stent cimentoplastie vissage rachis craniotomie','#antibioprophylaxie','🏥 Antibioprophylaxie — protocoles NAR neurochirurgie et radiologie interventionnelle'],
   ['intrathécal intrathecal intraventriculaire ivt ith dve ommaya colistine intraventriculaire','#pharmaco-ivt','💉 Antibiothérapie intrathécale / intraventriculaire (Pharmaco)'],
   ['biofilm anti-biofilm antibiofilm matériel dve dérivation verrou lock rifampicine prothèse','#pharmaco-bio','🧫 Antibiothérapie anti-biofilm (Pharmaco)'],
   ['antitoxinique antitoxine toxine pvl choc toxique clindamycine','#pharmaco-atx','🧪 Antibiothérapie antitoxinique (Pharmaco)'],
