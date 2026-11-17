@@ -433,14 +433,14 @@ async function readBioLocal(files){
  bioMsg('<span class="spin"></span> Lecture sur le téléphone (la photo ne quitte pas l\'appareil)…');
  try{
   const B=window.BIO;
-  const text = await window.OCR.recognize(files, m=>bioMsg('<span class="spin"></span> '+esc(m)));
-  const out = window.OCR.parseBio(text, BIOS.type);
+  const res = await window.OCR.recognizeBio(files, m=>bioMsg('<span class="spin"></span> '+esc(m)), BIOS.type);
+  const text = res.text, out = res.out;
   const v={}; Object.entries(out.values||{}).forEach(([k,x])=>{ if(B.T[out.type].fields.some(f=>f.id===k) && x!=null && !isNaN(+x)) v[k]=String(+x); });
   if(out.ctx && (B.CTX[out.type]||[]).some(([k])=>k===out.ctx)) v.ctx=out.ctx;
   const n=Object.keys(v).filter(k=>k!=='ctx').length;
   if(n){ BIOS={type:out.type, v}; saveBIO(); }
   BIOPH.msg = (n? `✅ Lecture sur l'appareil : ${n} valeur(s) (${esc(B.T[out.type].name)}). <b>Vérifiez le type de prélèvement, chaque valeur et son unité</b>, et complétez si besoin.`
-    : 'Lecture sur l\'appareil : aucune valeur reconnue. Choisir le type de prélèvement et saisir les valeurs (ou reprendre une photo nette, à plat, cadrée sur les résultats).') + OCRTXT(text);
+    : 'Lecture sur l\'appareil : aucune valeur reconnue. Choisir le type de prélèvement et saisir les valeurs (ou reprendre une photo nette, à plat, cadrée sur les résultats).<br><span class="muted small">Photo d\'écran : téléphone bien parallèle à l\'écran, tableau remplissant la photo, sans reflet ; si des rayures (moiré) apparaissent, reculer un peu et zoomer. Un compte rendu papier ou un PDF ouvert sur le téléphone (capture d\'écran) se lit beaucoup mieux.</span>') + OCRTXT(text);
   render();
  }catch(e){ bioMsg('Échec de la lecture sur l\'appareil ('+esc(String((e&&e.message)||e))+'). Saisir les valeurs ci-dessous.'); }
 }
@@ -749,7 +749,7 @@ function viewRefs(){
 }
 
 /* ---------- ANTIBIOGRAMME ---------- */
-const APP_VERSION='1.24';
+const APP_VERSION='1.25';
 let SAMPLE = null, sampleImages=false;
 const PHOTO = {msg:'', thumbs:[]}; let PHOTO_TARGET='abg';
 function photoMsg(h){ PHOTO.msg=h; const m=document.getElementById('photomsg'); if(m) m.innerHTML=h; }
@@ -936,17 +936,20 @@ async function readPhotosLocal(files){
  if(!window.OCR){ photoMsg('Module de lecture absent : saisir manuellement.'); return; }
  photoMsg('<span class="spin"></span> Lecture sur le téléphone (la photo ne quitte pas l\'appareil)…');
  try{
-  let text = await window.OCR.recognize(files, m=>photoMsg('<span class="spin"></span> '+esc(m)), '6');
+  let text = await window.OCR.recognize(files, m=>photoMsg('<span class="spin"></span> Passe 1 (standard) — '+esc(m)), '6', 0, 'g');
   let r = window.OCR.parseABG(text);
-  for(const [psm,rot] of [['4',0],['3',0],['6',90],['6',270],['11',0]]){ // mises en page atypiques / photo tournée : on garde la meilleure lecture
-   if(r.nres>=4) break;
-   const t2 = await window.OCR.recognize(files, m=>photoMsg('<span class="spin"></span> Nouvelle tentative (mise en page ou orientation différente)… '+esc(m)), psm, rot);
-   const r2 = window.OCR.parseABG(t2); if(r2.nres>r.nres){ r=r2; text=t2; }
+  // passes supplémentaires : fond normalisé (photo d'écran, moiré, reflets), mises en page atypiques, photo tournée — on garde la meilleure lecture
+  const P2=[['6',0,'n','fond normalisé : écran, moiré, reflets'],['4',0,'n','colonnes'],['4',0,'g','colonnes'],['3',0,'g','mise en page automatique'],['6',90,'g','photo tournée'],['6',270,'g','photo tournée'],['11',0,'n','texte épars']];
+  for(let i=0;i<P2.length;i++){ const [psm,rot,mode,lab]=P2[i];
+   if((i>=1 && r.nres>=8) || (i>=3 && r.nres>=4)) break;
+   const t2 = await window.OCR.recognize(files, m=>photoMsg(`<span class="spin"></span> Passe ${i+2} (${lab}) — `+esc(m)), psm, rot, mode);
+   const r2 = window.OCR.parseABG(t2); if(r2.nres>r.nres || (r2.nres===r.nres && r2.isolates.length>r.isolates.length)){ r=r2; text=t2; }
   }
   const n = addIsolates(r.isolates, 'ocr');
   const nres = r.isolates.reduce((a,x)=>a+x.results.length,0);
   PHOTO.msg = (n? `✅ Lecture sur l'appareil : ${n} isolat(s), ${nres} résultat(s) reconnu(s)${r.ambig?` — ${r.ambig} ligne(s) non attribuée(s)`:''}. <b>Vérifiez chaque ligne et complétez</b> (germe, phénotype, molécules manquantes).`
-    : 'Lecture sur l\'appareil : aucun résultat reconnu. Photo bien à plat, nette, cadrée sur le tableau, sans reflet — ou saisie manuelle ci-dessous.')
+    : 'Lecture sur l\'appareil : aucun résultat reconnu. Photo bien à plat, nette, cadrée sur le tableau, sans reflet — ou saisie manuelle ci-dessous.<br><span class="muted small">Photo d\'écran : téléphone bien parallèle à l\'écran, tableau remplissant la photo, sans reflet ; si des rayures (moiré) apparaissent, reculer un peu et zoomer. Un compte rendu papier ou un PDF ouvert sur le téléphone (capture d\'écran) se lit beaucoup mieux.</span>')
+    + (n && nres<5 ? '<br><span class="muted small">Photo d\'écran : téléphone bien parallèle à l\'écran, tableau remplissant la photo, sans reflet ; si des rayures (moiré) apparaissent, reculer un peu et zoomer. Un compte rendu papier ou un PDF ouvert sur le téléphone (capture d\'écran) se lit beaucoup mieux.</span>' : '')
     + (n && !nres ? ' <b>Germe reconnu mais aucun résultat S/R lu</b> : ouvrir « Texte lu sur la photo » pour voir ce que le téléphone a lu (format de compte rendu non prévu ?).' : '') + OCRTXT(text);
   saveAB(); render();
  }catch(e){ photoMsg('Échec de la lecture sur l\'appareil ('+esc(String((e&&e.message)||e))+'). Saisie manuelle ci-dessous.'); }

@@ -20,24 +20,80 @@ async function getWorker(){
  })().catch(e=>{ loading=null; throw e; });
  return loading;
 }
-/* prétraitement : orientation EXIF respectée, niveaux de gris, contraste, largeur ~2000 px */
-async function prep(file, rot){
+/* prétraitement : orientation EXIF respectée, niveaux de gris, redressement (deskew),
+   2 variantes : 'g' = gris contrasté ; 'n' = fond normalisé (supprime moiré d'écran, reflets, éclairage inégal) */
+async function loadImg(file){
  const url = URL.createObjectURL(file);
- try{
-  const img = await new Promise((ok,ko)=>{ const i=new Image(); i.onload=()=>ok(i); i.onerror=ko; i.src=url; });
-  const w0=img.naturalWidth, h0=img.naturalHeight; const s = Math.max(0.3, Math.min(2.2, 2000/Math.max(w0,1)));
-  const c=document.createElement('canvas'); c.width=Math.round(w0*s); c.height=Math.round(h0*s);
-  const x=c.getContext('2d'); x.imageSmoothingQuality='high'; x.drawImage(img,0,0,c.width,c.height);
-  const d=x.getImageData(0,0,c.width,c.height), p=d.data; let mn=255,mx=0;
-  for(let i=0;i<p.length;i+=4){ const g=(p[i]*0.299+p[i+1]*0.587+p[i+2]*0.114)|0; p[i]=g; if(g<mn) mn=g; if(g>mx) mx=g; }
-  const k = mx-mn>40 ? 255/(mx-mn) : 1;
-  for(let i=0;i<p.length;i+=4){ const g=Math.max(0,Math.min(255,(p[i]-mn)*k)); p[i]=p[i+1]=p[i+2]=g; }
-  x.putImageData(d,0,0);
-  if(rot){ const r=document.createElement('canvas'); r.width=c.height; r.height=c.width; const y=r.getContext('2d'); y.translate(r.width/2,r.height/2); y.rotate(rot*Math.PI/180); y.drawImage(c,-c.width/2,-c.height/2); return r; }
-  return c;
- }finally{ URL.revokeObjectURL(url); }
+ try{ return await new Promise((ok,ko)=>{ const i=new Image(); i.onload=()=>ok(i); i.onerror=ko; i.src=url; }); }
+ finally{ setTimeout(()=>URL.revokeObjectURL(url), 30000); }
 }
-async function recognize(files, onProgress, psm, rot){
+function grayOf(img, W){
+ const w0=img.naturalWidth||img.width, h0=img.naturalHeight||img.height; const s=Math.max(0.3, Math.min(3, W/Math.max(w0,1)));
+ const c=document.createElement('canvas'); c.width=Math.round(w0*s); c.height=Math.round(h0*s);
+ const x=c.getContext('2d'); x.imageSmoothingQuality='high'; x.drawImage(img,0,0,c.width,c.height);
+ const d=x.getImageData(0,0,c.width,c.height).data; const g=new Float32Array(c.width*c.height); let sum=0;
+ for(let i=0,j=0;i<d.length;i+=4,j++){ g[j]=d[i]*0.299+d[i+1]*0.587+d[i+2]*0.114; sum+=g[j]; }
+ if(sum/g.length<100) for(let j=0;j<g.length;j++) g[j]=255-g[j]; // écran en mode sombre
+ return {g, w:c.width, h:c.height};
+}
+function boxBlur(src, w, h, r){ // flou de boîte séparable (r en px)
+ if(r<1) return src; const tmp=new Float32Array(w*h), out=new Float32Array(w*h), k=2*r+1;
+ for(let y=0;y<h;y++){ let acc=0; const o=y*w; for(let x=-r;x<=r;x++) acc+=src[o+Math.min(w-1,Math.max(0,x))];
+  for(let x=0;x<w;x++){ tmp[o+x]=acc/k; acc+=src[o+Math.min(w-1,x+r+1)]-src[o+Math.max(0,x-r)]; } }
+ for(let x=0;x<w;x++){ let acc=0; for(let y=-r;y<=r;y++) acc+=tmp[Math.min(h-1,Math.max(0,y))*w+x];
+  for(let y=0;y<h;y++){ out[y*w+x]=acc/k; acc+=tmp[Math.min(h-1,y+r+1)*w+x]-tmp[Math.max(0,y-r)*w+x]; } }
+ return out;
+}
+function maxFilter(src, w, h, r){ // dilatation (max) séparable : estime le fond clair
+ const tmp=new Float32Array(w*h), out=new Float32Array(w*h);
+ for(let y=0;y<h;y++){ const o=y*w; for(let x=0;x<w;x++){ let m=0; const a=Math.max(0,x-r), b=Math.min(w-1,x+r); for(let i=a;i<=b;i++) if(src[o+i]>m) m=src[o+i]; tmp[o+x]=m; } }
+ for(let x=0;x<w;x++){ for(let y=0;y<h;y++){ let m=0; const a=Math.max(0,y-r), b=Math.min(h-1,y+r); for(let i=a;i<=b;i++){ const v=tmp[i*w+x]; if(v>m) m=v; } out[y*w+x]=m; } }
+ return out;
+}
+function skewAngle(G){ // angle (degrés) maximisant la netteté des lignes de texte (profil de projection)
+ // points de contour vertical (|dI/dx| fort) : traits des caractères, insensibles aux bandes horizontales de moiré
+ const S=Math.min(1, 1000/G.w), w=Math.round(G.w*S), h=Math.round(G.h*S); const pts=[]; const st=Math.max(1,Math.round(1/S));
+ for(let y=0;y<h;y++){ const o=Math.min(G.h-1,Math.round(y/S))*G.w; for(let x=1;x<w-1;x++){ const xi=Math.round(x/S); if(xi+st>=G.w||xi-st<0) continue; const d=Math.abs(G.g[o+xi+st]-G.g[o+xi-st]); if(d>40) pts.push(x-w/2, y); } }
+ if(pts.length<200) return 0;
+ const score=a=>{ const t=Math.tan(a*Math.PI/180), H=new Float32Array(h*2+10); for(let k=0;k<pts.length;k+=2){ const r=Math.round(pts[k+1]-pts[k]*t)+h/2|0; if(r>=0&&r<H.length) H[r]++; } let s2=0; for(const v of H) s2+=v*v; return s2; };
+ let best=0, bs=-1; for(let a=-12;a<=12;a+=0.5){ const v=score(a); if(v>bs){bs=v; best=a;} }
+ let fine=best; for(let a=best-0.5;a<=best+0.5;a+=0.1){ const v=score(a); if(v>bs){bs=v; fine=a;} }
+ return Math.abs(fine)<0.3?0:fine;
+}
+function toCanvas(arr, w, h){ const c=document.createElement('canvas'); c.width=w; c.height=h; const x=c.getContext('2d'); const im=x.createImageData(w,h);
+ for(let j=0,i=0;j<arr.length;j++,i+=4){ const v=arr[j]<0?0:arr[j]>255?255:arr[j]; im.data[i]=im.data[i+1]=im.data[i+2]=v; im.data[i+3]=255; } x.putImageData(im,0,0); return c; }
+function rotateCanvas(c, deg){ if(!deg) return c; const t=deg*Math.PI/180, W=Math.round(Math.abs(c.width*Math.cos(t))+Math.abs(c.height*Math.sin(t))), H=Math.round(Math.abs(c.width*Math.sin(t))+Math.abs(c.height*Math.cos(t)));
+ const r=document.createElement('canvas'); r.width=W; r.height=H; const y=r.getContext('2d'); y.fillStyle='#fff'; y.fillRect(0,0,W,H); y.translate(W/2,H/2); y.rotate(t); y.drawImage(c,-c.width/2,-c.height/2); return r; }
+function maxFilterH(src, w, h, r){ const out=new Float32Array(w*h); for(let y=0;y<h;y++){ const o=y*w; for(let x=0;x<w;x++){ let m=0; const a=Math.max(0,x-r), b=Math.min(w-1,x+r); for(let i=a;i<=b;i+=2) if(src[o+i]>m) m=src[o+i]; out[o+x]=m; } } return out; }
+function boxBlurH(src, w, h, r){ const out=new Float32Array(w*h), k=2*r+1; for(let y=0;y<h;y++){ const o=y*w; let acc=0; for(let x=-r;x<=r;x++) acc+=src[o+Math.min(w-1,Math.max(0,x))]; for(let x=0;x<w;x++){ out[o+x]=acc/k; acc+=src[o+Math.min(w-1,x+r+1)]-src[o+Math.max(0,x-r)]; } } return out; }
+function stretch(g){ let mn=255,mx=0; for(let j=0;j<g.length;j+=7){ if(g[j]<mn) mn=g[j]; if(g[j]>mx) mx=g[j]; } const k = mx-mn>40 ? 255/(mx-mn) : 1; const out=new Float32Array(g.length); for(let j=0;j<g.length;j++) out[j]=(g[j]-mn)*k; return out; }
+async function prep(file, rot, mode){
+ const img = await loadImg(file);
+ const w0=img.naturalWidth||img.width; // garder la résolution native (texte petit sur les photos de 12 Mpx), bornée pour la mémoire et le temps
+ let G = grayOf(img, Math.max(mode==='n'?2600:2000, Math.min(w0, 3600)));
+ let g = stretch(G.g);
+ // 1) redressement (sur le gris)
+ const sk = skewAngle({g, w:G.w, h:G.h}) || 0;
+ const turn = -sk + (rot||0);
+ if(turn){ const c=rotateCanvas(toCanvas(g, G.w, G.h), turn); const d=c.getContext('2d').getImageData(0,0,c.width,c.height).data; const n=new Float32Array(c.width*c.height); for(let i=0,j=0;i<d.length;i+=4,j++) n[j]=d[i]; G={g:n, w:c.width, h:c.height}; g=n; }
+ const {w,h}=G;
+ // 2) fond normalisé : division par le fond de chaque ligne (max horizontal) → supprime les bandes de moiré, reflets, éclairage inégal
+ if(mode==='n'){
+  const rh=Math.max(20, Math.round(w/40));
+  const sm = boxBlur(g, w, h, Math.max(1, Math.round(w/1500)));
+  const bg = boxBlurH(maxFilterH(sm, w, h, rh), w, h, rh);
+  // zones sombres hors document (bord de l'écran, bureau) → blanc ; sinon division par le fond
+  const BG=boxBlur(bg, w, h, Math.max(4, Math.round(w/150)));
+  const n=new Float32Array(w*h); for(let j=0;j<n.length;j++) n[j]= BG[j]<70 ? 255 : Math.min(255, 255*sm[j]/Math.max(25,bg[j]));
+  g = stretch(n);
+ }
+ return toCanvas(g, w, h);
+}
+function confText(d, cmin){ // texte reconstruit ligne par ligne ; nombres lus avec une confiance faible masqués
+ if(!d || !d.lines || !d.lines.length) return (d&&d.text)||'';
+ return d.lines.map(L=>(L.words||[]).map(w=> (/\d/.test(w.text) && w.confidence<cmin) ? '¿' : w.text).join('   ')).join('\n');
+}
+async function recognize(files, onProgress, psm, rot, mode, cmin){
  const n=files.length; let done=0;
  CUR = m=>{ if(!onProgress) return;
    if(m.status==='recognizing text') onProgress(`Lecture de l'image ${done+1}/${n}… ${Math.round((m.progress||0)*100)} %`);
@@ -45,8 +101,35 @@ async function recognize(files, onProgress, psm, rot){
  onProgress && onProgress('Préparation du module de lecture…');
  const w = await getWorker(); const texts=[];
  await w.setParameters({ tessedit_pageseg_mode: psm||'6' });
- for(const f of files){ const cv = await prep(f, rot||0); const r = await w.recognize(cv); texts.push((r && r.data && r.data.text)||''); done++; }
+ for(const f of files){ const cv = await prep(f, rot||0, mode||'g'); const r = await w.recognize(cv); texts.push(cmin? confText(r&&r.data, cmin) : ((r && r.data && r.data.text)||'')); done++; }
  CUR=null; return texts.join('\n');
+}
+/* biologie : plusieurs passes (prétraitements et mises en page) ; pour chaque champ, valeur retenue par vote entre passes */
+async function recognizeBio(files, onProgress, fallback){
+ const passes=[['g','6','standard'],['n','6','fond normalisé : écran, moiré, reflets'],['n','4','colonnes'],['g','4','colonnes, sans normalisation']];
+ const runs=[];
+ for(let i=0;i<passes.length;i++){
+  const [mode,psm,lab]=passes[i];
+  if(i===3 && runs.some(r=>Object.keys(r.out.values).length>=3)) break;
+  const text = await recognize(files, m=>onProgress&&onProgress(`Passe ${i+1}/${passes.length} (${lab}) — ${m}`), psm, 0, mode, 45);
+  runs.push({text, out:parseBio(text, fallback)});
+ }
+ // type : majoritaire (pondéré par le nombre de valeurs)
+ const tw={}; runs.forEach(r=>tw[r.out.type]=(tw[r.out.type]||0)+1+Object.keys(r.out.values).length);
+ const type=Object.entries(tw).sort((a,b)=>b[1]-a[1])[0][0];
+ const same=runs.filter(r=>r.out.type===type);
+ const fields=new Set(); same.forEach(r=>Object.keys(r.out.values).forEach(k=>fields.add(k)));
+ const values={};
+ fields.forEach(k=>{ const c={}; same.forEach((r,i)=>{ const v=r.out.values[k]; if(v!=null){ const key=String(v); c[key]=(c[key]||0)+1+(i===1?0.1:0); } });
+  // virgule perdue (98 lu au lieu de 9,8) : on regroupe avec la valeur décimale lue ailleurs
+  Object.keys(c).forEach(a=>{ Object.keys(c).forEach(b=>{ if(a!==b && c[a] && c[b] && /[.]/.test(b) && Math.abs(+a - +b*10)<1e-6 && a.replace('.','')===b.replace('.','').replace(/^0+/,'')){ c[b]+=c[a]; delete c[a]; } }); });
+  const PLAUS={gbs:[0.1,80],grs:[0.5,9],hb:[2,25],prot:[0,30],glu:[0,40],glyc:[0,60]};
+  let ent=Object.entries(c).sort((a,b)=>b[1]-a[1]);
+  if(PLAUS[k]){ const ok=ent.filter(([v])=>+v>=PLAUS[k][0]&&+v<=PLAUS[k][1]); if(ok.length) ent=ok; else { const f=ent.find(([v])=>+v/10>=PLAUS[k][0]&&+v/10<=PLAUS[k][1]); if(f) ent=[[String(+f[0]/10),1]]; else ent=[]; } }
+  if(ent.length) values[k]=+ent[0][0]; });
+ const ctx=(same.find(r=>r.out.ctx)||{out:{}}).out.ctx||null;
+ const top=same.slice().sort((a,b)=>Object.keys(b.out.values).length-Object.keys(a.out.values).length)[0];
+ return {text:top.text, out:{type, ctx, values}, pass:runs.length+' passes'};
 }
 
 /* ---------- correction orthographique des mots (distance d'édition) ---------- */
@@ -241,7 +324,7 @@ function pow10(s){ // 10^5, 10e5, 10*5, « 105 » (exposant perdu), 1.10^5, 1000
 const BIOK = {
  lcs: [['gbs',/(leucocyt|globules blancs).{0,12}(sang|serique|plasma)/],['grs',/(hematies|globules rouges).{0,12}(sang|serique)/],['glyc',/glycemie|glucose.{0,8}(sang|plasma|serique)/,'glu'],
        ['gb',/leucocyt|elements( nuclees)?|cellules( nucleees)?|globules blancs/,'cell'],['pnn',/polynucleaires?( neutrophiles?)?|neutrophiles|\bpnn\b/,'pct'],['gr',/hematies|globules rouges|erythrocytes/,'cell'],
-       ['prot',/proteinorachie|proteines?|protides?/,'prot'],['glu',/glycorachie|glucose/,'glu'],['lact',/lactat/,'lact']],
+       ['prot',/proteinorachie|\b(?:pr)?oteines?|protides?/,'prot'],['glu',/glycorachie|glucose/,'glu'],['lact',/lactat/,'lact']],
  pleural:[['protS',/(protides?|proteines?).{0,14}(sang|serique|plasma)/,'prot'],['ldhS',/ldh.{0,14}(sang|serique|plasma)/],['protP',/protides?|proteines?/,'prot'],['ldhP',/\bldh\b|lacticodeshydrogenase|lactate deshydrogenase/],
        ['ph',/\bph\b/],['glu',/glucose|glycopleurie/,'glu'],['gb',/leucocyt|elements|cellules|globules blancs/,'cell'],['pnn',/polynucleaires?|neutrophiles|\bpnn\b/,'pct']],
  ascite:[['albS',/albumine.{0,14}(sang|serique|plasma)/],['alb',/albumine/],['prot',/protides?|proteines?/,'prot'],['glu',/glucose/,'glu'],['ldh',/\bldh\b|lactate deshydrogenase/],
@@ -257,9 +340,10 @@ const TYPEK = { lcs:/\blcr\b|\blcs\b|cephalo ?rachidien|cerebro ?spinal|ponction
  ecbu:/\becbu\b|urine|leucocyturie|bacteriurie|cytobacteriologique des urines/g,
  resp:/aspiration (tracheale|bronchique|endotracheale)|lavage broncho|\blba\b|brosse|\bpdp\b|distal protege|expectoration/g,
  nfs:/hemoglobine|plaquettes|numeration formule|hematocrite|procalcitonine|\bcrp\b|creatinine/g };
-function pick(field, kind, s, ctxType){
+const UNITRE=/^\s*(giga|tera|g ?\/ ?l|g ?\/ ?dl|mg|mmol|mol|umol|\/mm|mm3|\/l|t ?\/ ?l|10|%|ui|ufc|\/ul)/;
+function pick(field, kind, s, ctxType, lineUnit){
  const n=nums(s); if(!n.length && kind!=='yes' && kind!=='pow') return null;
- const u = x => N(x.after);
+ const u = x => { const a=N(x.after); return UNITRE.test(a)||!lineUnit ? a : ' '+lineUnit; };
  const first = n[0];
  switch(kind){
   case 'yes': return /(absence|absents?|pas de|negati|aucun)/.test(s)?null:(/(presence|presents?|urate|pyrophosphate|calcium|positi|nombreux|rares)/.test(s)?1:null);
@@ -280,18 +364,30 @@ function pick(field, kind, s, ctxType){
   default: return first.v;
  }
 }
+/* lignes de tableau de laboratoire : unité de la ligne, intervalles de référence retirés (0,15-0,45 ; 430-7…), unités à chiffres retirées (/mm3, 10^9/L) */
+const LUNIT=/(giga ?\/ ?l|tera ?\/ ?l|g ?\/ ?dl|mg ?\/ ?dl|mg ?\/ ?l|mmol ?\/ ?l|mol ?\/ ?l|g ?\/ ?l|t ?\/ ?l|\/ ?mm ?3|\bmm3|\/ ?[uµ]l|10 ?[\^*]? ?9 ?\/ ?l|10 ?[\^*]? ?12 ?\/ ?l)/;
+function bioLine(raw){
+ let r=raw.replace(/(\d)\s?[;:](\d)/g,'$1,$2').replace(/(?<![\d.,])(\d{1,3})[ \u00a0\u202f](\d{3})(?![\d]|[.,]\d)/g,'$1$2'); // 50 000 → 50000
+ const lu=(N(r).match(LUNIT)||[])[0]||'';
+ let unit = /giga|10 ?[\^*]? ?9/.test(lu)?'giga/l' : /tera|10 ?[\^*]? ?12|^t/.test(lu)?'tera/l' : /mm ?3|[uµ]l/.test(lu)?'/mm3' : lu.replace(/\s/g,'');
+ r = r.replace(/[\[(]?\s*\d+(?:[.,]\d+)?\s*[-–—]\s*(?:\d+(?:[.,]\d+)?|\.{2,}|…)?(?:\.{2,}|…)?\s*[\])]?/g,' ')
+      .replace(/[\/|\[]?\s?[il]?mm\s?[3³]\b|\/\s?[uµ]l\b|(?:x\s?)?10\s?[\^*eE]?\s?(?:9|12)\s?\/\s?l\b/gi,' ');
+ return {raw, t:clean(r), unit, hasNum:/\d/.test(r)};
+}
 function parseBio(text, fallback){
- const lines=(text||'').split(/\n/).map(l=>l.trim()).filter(Boolean).map(l=>({raw:l, t:clean(l)}));
+ const lines=(text||'').split(/\n/).map(l=>l.trim()).filter(Boolean).map(bioLine);
  const all=lines.map(l=>l.t).join(' \n ');
  let type=null, best=0; for(const [k,re] of Object.entries(TYPEK)){ const c=(all.match(re)||[]).length*(k==='nfs'?0.6:1); if(c>best){best=c; type=k;} }
  if(!type) type=fallback||'nfs';
- const v={}, pct={};
+ const v={}, pct={}; let blood=false;
  for(const L of lines){
-  for(const [id,re,kind] of BIOK[type]){
-   if(v[id]!=null) continue;
+  if(!L.hasNum){ if(/\bsang|sanguin|plasma|serum\b/.test(L.t)) blood=true; else if(/\blcr\b|\blcs\b|cephalo|rachidien|liquide|ponction/.test(L.t)) blood=false; }
+  for(let [id,re,kind] of BIOK[type]){
    const m=L.t.match(re); if(!m) continue;
+   if(type==='lcs'){ if(id==='gb' && (blood||L.unit==='giga/l')){ id='gbs'; kind=undefined; } else if(id==='gr' && (blood||L.unit==='tera/l')){ id='grs'; kind=undefined; } else if(id==='glu' && blood){ id='glyc'; } }
+   if(v[id]!=null) continue;
    const tail = L.t.slice(m.index+m[0].length).replace(/^[^0-9<>]*/,'');
-   const r = pick(id, kind, kind==='yes'?L.t:tail, type);
+   const r = pick(id, kind, kind==='yes'?L.t:tail, type, L.unit);
    if(r==null) { continue; }
    if(typeof r==='object'){ if(r.pnn!=null) v.pnn=r.pnn; if(r.pnnAbs!=null) v.pnnAbs=r.pnnAbs; if(r.pct!=null) pct[id]=r.pct; }
    else if(!isNaN(r)) v[id]=+(+r).toPrecision(4);
@@ -306,5 +402,5 @@ function parseBio(text, fallback){
  return {type, ctx, values:v};
 }
 
-window.OCR = { recognize, parseABG, parseBio, _clean:clean };
+window.OCR = { recognize, recognizeBio, parseABG, parseBio, _clean:clean, _prep:prep };
 })();
