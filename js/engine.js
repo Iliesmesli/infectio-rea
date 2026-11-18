@@ -14,7 +14,9 @@ const SITES = [
  {id:'peau', l:'Peau / tissus mous'},
  {id:'os',   l:'Os / articulation / matériel'},
  {id:'endo', l:'Endocardite'},
- {id:'kt',   l:'Infection liée au cathéter'}
+ {id:'kt',   l:'Infection liée au cathéter'},
+ {id:'cerv', l:'Infection cervicale profonde (abcès ORL)', compat:'peau'},
+ {id:'medi', l:'Médiastinite', compat:'os'}
 ];
 window.SITES = SITES;
 const siteCompat = s => (SITES.find(x=>x.id===s)||{}).compat || s;
@@ -256,6 +258,8 @@ function duration(site, germ, ctx){
   case 'abces': return '6 sem (4 sem si exérèse complète) — ESCMID 2024';
   case 'abdo': if(fung) return 'Antifongique : 8 j si contrôle rapide de la source, évolution favorable et absence de candidémie (RFE SFAR 2026 R2.3.1) ; sinon selon évolution (14 j après hémocultures négatives si candidémie)'; return 'Source contrôlée — IIA communautaire compliquée : 4 j (y compris sepsis, drainage percutané/endoscopique) ; appendicite compliquée : 2 j ; associée aux soins sans sepsis : 4 j ; associée aux soins avec sepsis/choc ou complication post-opératoire : 8 j (au-delà : discussion multidisciplinaire) — RFE SFAR 2026';
   case 'peau': return '7–14 j selon chirurgie/évolution';
+  case 'cerv': return 'Adénite 7 j ; abcès péri-amygdalien, para- ou rétropharyngé : 7 j si drainage, 10 j sinon ; cellulite cervicale profonde : 14 j après la chirurgie (SFORL/SPILF 2024)';
+  case 'medi': return 'Post-sternotomie avec ostéite sternale : 6 sem (dont ≈ 3 sem IV) (DESC 2018) ; médiastinite nécrosante descendante : 14 j après la chirurgie (SFORL/SPILF 2024)';
   case 'os': return '6 sem (12 sem si matériel conservé)';
   case 'endo': return '4–6 sem (valve native/prothèse)';
   case 'kt': { if(id==='saureus') return '≥ 14 j après retrait'; if(id==='scn') return '3–7 j après retrait (abstention possible si retrait et patient stable)'; if(fung) return '14 j après hémocultures négatives'; if(g==='pseudo') return '7–10 j après retrait'; return '7 j après retrait'; }
@@ -399,7 +403,7 @@ function evaluate(iso, sites, pat, opts={}){
  const cands = rf(ctx);
  const out=[], excluded=[];
  cands.forEach((c,idx)=>{
-   if(c.only && !sites.some(s=>c.only.includes(s))) return;
+   if(c.only && !sites.some(s=>c.only.includes(s)||c.only.includes(siteCompat(s)))) return;
    if(c.ifR && !c.ifR.some(x=>(iso.ast||{})[x]==='R')) return;
    // allergie
    const allergy = pat.allergy||'none';

@@ -544,7 +544,8 @@ function bindABP(root){
 const PORG=[
  ['snc','🧠','Système nerveux central',['mening','ventri','abces','enceph','cryptococcose','nocardiose']],
  ['pulm','🫁','Poumon et voies aériennes',['pavm','pac','inhal','abces_pulm','grippe','pneumocystose','aspergillose','nocardiose']],
- ['orl','👃','ORL et face',['sinusite','thrombo','mucormycose']],
+ ['orl','👃','ORL, cou et face',['cervical','sinusite','thrombo','mucormycose']],
+ ['thorax','🫀','Médiastin',['mediastinite']],
  ['sang','🩸','Sang, cathéters, cœur et vaisseaux',['bact_kt','thrombo','endoc','cand','cauris']],
  ['uri','💧','Voies urinaires',['iu','iuas']],
  ['abdo','🫃','Abdomen et tube digestif',['iia','cdi']],
@@ -834,7 +835,7 @@ function viewRefs(){
 }
 
 /* ---------- ANTIBIOGRAMME ---------- */
-const APP_VERSION='1.31';
+const APP_VERSION='1.32';
 let SAMPLE = null, sampleImages=false;
 const PHOTO = {msg:'', thumbs:[]}; let PHOTO_TARGET='abg';
 function photoMsg(h){ PHOTO.msg=h; const m=document.getElementById('photomsg'); if(m) m.innerHTML=h; }
@@ -1180,7 +1181,9 @@ function searchAll(q){
  q = q.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,''); if(q.length<2) return '';
  const m = s => (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').includes(q);
  const r=[];
- const KW=[['isolement precautions contact gouttelettes air respiratoire ffp2 masque hygiene eoh','#hygiene','🧼 Hygiène : isolements et précautions'],
+ const KW=[['mediastinite sternite sternotomie chirurgie cardiaque cervicomediastinite descendante boerhaave perforation oesophage fistule anastomotique','#p-mediastinite','🫀 Médiastinites (post-sternotomie, descendante, œsophagienne)'],
+  ['abces orl abces peri amygdalien phlegmon peri-amygdalien retropharynge parapharynge cellulite cervicale ludwig trismus torticolis','#p-cervical','👃 Infections cervicales profondes (abcès ORL)'],
+  ['isolement precautions contact gouttelettes air respiratoire ffp2 masque hygiene eoh','#hygiene','🧼 Hygiène : isolements et précautions'],
   ['mdo mso declaration signalement obligatoire ars point focal cerfa','#hygiene','📣 Maladies à signalement obligatoire (MSO/MDO) — ARS Nouvelle-Aquitaine'],
   ['esin e-sin ias cas groupes aes accident exposition','#hygiene','🏥 Signalement des IAS (e-SIN), AES'],
   ['cloxacilline céfazoline cefazoline cloceba snap néphrotoxicité sams','#pharmaco-tox:cfzclox','⚖️ Cloxacilline vs céfazoline (CloCeBa, SNAP)'],
