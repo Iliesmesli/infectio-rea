@@ -498,18 +498,26 @@ const PORG=[
  ['orl','👃','ORL et face',['sinusite','thrombo','mucormycose']],
  ['sang','🩸','Sang, cathéters, cœur et vaisseaux',['bact_kt','thrombo','endoc','cand','cauris']],
  ['uri','💧','Voies urinaires',['iu','iuas']],
- ['abdo','🍽️','Abdomen et tube digestif',['iia','cdi']],
+ ['abdo','🫃','Abdomen et tube digestif',['iia','cdi']],
  ['peau','🩹','Peau et tissus mous',['dhbn','fournier','mucormycose']],
- ['sys','🔥','Sepsis sans point d\'appel, immunodéprimé',['choc','immunodep']],
+ ['sys','🚨','Sepsis sans point d\'appel, immunodéprimé',['choc','immunodep']],
  ['fong','🍄','Infections fongiques (tous organes)',['cand','cauris','aspergillose','mucormycose','pneumocystose','cryptococcose','moisissures_rares']]
 ];
+function pathoOpenGet(){ try{ return JSON.parse(localStorage.getItem('pathoOrgOpen')||'[]'); }catch(e){ return []; } }
+document.addEventListener('toggle', e=>{
+ const d=e.target; if(!d || !d.matches || !d.matches('details.pcat')) return;
+ try{ const all=[...document.querySelectorAll('details.pcat')].filter(x=>x.open).map(x=>x.dataset.cat); localStorage.setItem('pathoOrgOpen', JSON.stringify(all)); }catch(err){}
+}, true);
 function viewPathos(){
  const by=Object.fromEntries(window.PATHO.map(p=>[p.id,p])), used=new Set();
  const tile=p=>`<a class="tile" href="#p-${p.id}"><b>${esc(p.name)}</b><span>${esc(String(p.duree).replace(/<[^>]+>/g,'').slice(0,90))}</span></a>`;
  const groups=PORG.map(([id,ico,t,ids])=>{ const ps=ids.map(i=>by[i]).filter(Boolean); ps.forEach(p=>used.add(p.id)); return [id,ico,t,ps]; });
  const rest=window.PATHO.filter(p=>!used.has(p.id)); if(rest.length) groups.push(['autres','📋','Autres',rest]);
- return `<section class="card"><p class="muted small">Touchez un organe pour déplier ses pathologies (une même fiche peut apparaître dans plusieurs organes).</p>
- ${groups.map(([id,ico,t,ps])=>`<details class="sec" id="po-${id}"><summary><span class="ico">${ico}</span>${esc(t)} <span class="muted small" style="font-weight:400">(${ps.length})</span></summary><div class="secbody"><div class="tiles">${ps.map(tile).join('')}</div></div></details>`).join('')}</section>`;
+ const op=pathoOpenGet();
+ return `<section class="card"><h2>Pathologies</h2>
+ <nav class="jump">${groups.map(([id,ico,t,ps])=>`<button type="button" data-jump="po-${id}">${ico} ${esc(t.split(/[,(]/)[0].trim())} <span class="muted">${ps.length}</span></button>`).join('')}<button type="button" data-togall>⇕ Tout ouvrir/fermer</button></nav>
+ <p class="muted small">Touchez un organe pour déplier ses pathologies (une même fiche peut apparaître dans plusieurs organes).</p>
+ ${groups.map(([id,ico,t,ps])=>`<details class="sec pcat" id="po-${id}" data-cat="${id}"${op.includes(id)?' open':''}><summary><span class="ico">${ico}</span>${esc(t)} <span class="muted small" style="font-weight:500">· ${ps.length} fiche${ps.length>1?'s':''}</span></summary><div class="secbody"><div class="tiles">${ps.map(tile).join('')}</div></div></details>`).join('')}</section>`;
 }
 function viewPatho(id){
  const p=window.PATHO.find(x=>x.id===id); if(!p) return '<p>Introuvable.</p>';
@@ -782,7 +790,7 @@ function viewRefs(){
 }
 
 /* ---------- ANTIBIOGRAMME ---------- */
-const APP_VERSION='1.28';
+const APP_VERSION='1.29';
 let SAMPLE = null, sampleImages=false;
 const PHOTO = {msg:'', thumbs:[]}; let PHOTO_TARGET='abg';
 function photoMsg(h){ PHOTO.msg=h; const m=document.getElementById('photomsg'); if(m) m.innerHTML=h; }
