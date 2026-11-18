@@ -201,14 +201,43 @@ function doseBlock(d, regKey, extras=true){
 
 /* ---------- MOLÉCULES ---------- */
 let molFilter = {type:'all', q:''};
+/* ---------- Dépliants génériques (navigation rapide, tout ouvrir/fermer, mémorisation) ---------- */
+function foldGet(key){ try{ return JSON.parse(localStorage.getItem('fold:'+key)||'[]'); }catch(e){ return []; } }
+document.addEventListener('toggle', e=>{
+ const d=e.target; if(!d || !d.matches || !d.matches('details.fold') || d.dataset.nosave) return;
+ const k=d.dataset.fk;
+ try{ const all=[...document.querySelectorAll(`details.fold[data-fk="${k}"]`)].filter(x=>x.open).map(x=>x.dataset.fid); localStorage.setItem('fold:'+k, JSON.stringify(all)); }catch(err){}
+}, true);
+/* groups : [id, ico, titre, nombre, html] ; opts.all = tout ouvert (filtre actif, sans mémorisation) ; opts.nav=false pour masquer la barre */
+function foldGroups(key, prefix, groups, opts={}){
+ const op=foldGet(key), all=!!opts.all;
+ const nav = opts.nav===false||all ? '' : `<nav class="jump">${groups.map(([id,ico,t,n])=>`<button type="button" data-jump="${prefix}-${id}">${ico} ${esc(String(t).split(/[,(]/)[0].trim())}${n!=null?` <span class="muted">${n}</span>`:''}</button>`).join('')}<button type="button" data-togall>⇕ Tout ouvrir/fermer</button></nav>`;
+ return nav + groups.map(([id,ico,t,n,html])=>`<details class="sec fold" id="${prefix}-${id}" data-fk="${key}" data-fid="${id}"${all?' data-nosave="1"':''}${all||op.includes(id)?' open':''}><summary><span class="ico">${ico}</span>${esc(t)}${n!=null?` <span class="muted small" style="font-weight:500">· ${n}</span>`:''}</summary><div class="secbody">${html}</div></details>`).join('');
+}
+const MFAM=[
+ ['peni','🟢','Pénicillines',d=>d.type==='ab'&&/p[ée]nicilline/i.test(d.cls)],
+ ['ceph','🔵','Céphalosporines',d=>d.type==='ab'&&/c[ée]phalosporine/i.test(d.cls)],
+ ['carba','🟣','Carbapénèmes et monobactames',d=>d.type==='ab'&&/carbap[ée]n|monobactame/i.test(d.cls)],
+ ['amino','🟠','Aminosides',d=>d.type==='ab'&&/aminoside/i.test(d.cls)],
+ ['gp','🔴','Anti-Gram + (glycopeptides, lipopeptide, oxazolidinone)',d=>d.type==='ab'&&/glycopeptide|lipopeptide|oxazolidinone/i.test(d.cls)],
+ ['fq','🟡','Fluoroquinolones',d=>d.type==='ab'&&/quinolone/i.test(d.cls)],
+ ['cyc','🟤','Cyclines',d=>d.type==='ab'&&/cycline/i.test(d.cls)],
+ ['mac','⚪','Macrolides, lincosamides et apparentés',d=>d.type==='ab'&&/macrolide|lincosamide|macrocyclique/i.test(d.cls)],
+ ['autre','⚫','Autres antibactériens (cotrimoxazole, métronidazole, rifampicine, fosfomycine, colistine…)',d=>d.type==='ab'],
+ ['af','🍄','Antifongiques',d=>d.type==='af'],
+ ['av','🦠','Antiviraux',d=>d.type==='av']
+];
 function viewMolecules(){
  const list = window.DRUGS.filter(d=>(molFilter.type==='all'||d.type===molFilter.type) && (!molFilter.q || (d.name+' '+d.cls+' '+(d.alias||[]).join(' ')).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').includes(molFilter.q)));
- const groups={}; list.forEach(d=>{(groups[d.cls]=groups[d.cls]||[]).push(d);});
+ const used=new Set();
+ const tile=d=>`<a class="tile" href="#m-${d.id}"><b>${esc(d.name)}</b><span><i>${esc(d.cls)}</i> — ${(()=>{const t=(d.dose&&(d.dose.high||d.dose.std))||''; return esc(t.slice(0,90))+(t.length>90?'…':'');})()}</span></a>`;
+ const groups=MFAM.map(([id,ico,t,f])=>{ const ds=list.filter(d=>!used.has(d.id)&&f(d)); ds.forEach(d=>used.add(d.id)); return [id,ico,t,ds.length,`<div class="tiles">${ds.map(tile).join('')}</div>`]; }).filter(g=>g[3]>0);
+ const rest=list.filter(d=>!used.has(d.id)); if(rest.length) groups.push(['x','📋','Autres',rest.length,`<div class="tiles">${rest.map(tile).join('')}</div>`]);
  return `<section class="card"><div class="toolbar">
   <div class="seg">${[['all','Tous'],['ab','Antibactériens'],['af','Antifongiques'],['av','Antiviraux']].map(([k,l])=>`<button class="${molFilter.type===k?'on':''}" data-molt="${k}">${l}</button>`).join('')}</div>
   <input type="search" id="molq" placeholder="Filtrer (nom, classe, abréviation)…" value="${esc(molFilter.q)}"></div>
   <div class="transv"><b>Fiches transversales</b> : <a href="#pharmaco-atx">🧪 Antitoxiniques</a> · <a href="#pharmaco-bio">🧫 Anti-biofilm</a> · <a href="#pharmaco-ivt">💉 Intraventriculaire</a> · <a href="#pharmaco-tox">⚠️ Toxicités & surveillance (encéphalopathie aux β-lactamines…)</a> · <a href="#pharmaco">📈 PK/PD & STP</a></div>
-  ${Object.entries(groups).map(([cls,ds])=>`<h3 class="grp">${esc(cls)}</h3><div class="tiles">${ds.map(d=>`<a class="tile" href="#m-${d.id}"><b>${esc(d.name)}</b><span>${(()=>{const t=(d.dose&&(d.dose.high||d.dose.std))||''; return esc(t.slice(0,90))+(t.length>90?'…':'');})()}</span></a>`).join('')}</div>`).join('') || '<p class="muted">Aucun résultat.</p>'}
+  ${groups.length? foldGroups('mol','mf',groups,{all:!!molFilter.q}) : '<p class="muted">Aucun résultat.</p>'}
  </section>`;
 }
 
@@ -258,12 +287,32 @@ function viewMolecule(id){
 
 /* ---------- GERMES ---------- */
 let germQ='';
+/* Dépliants par famille de germes : un germe peut figurer dans plusieurs familles */
+const GFAM=[
+ ['cgp','🟣','Cocci Gram +',['saureus','scn','spneumo','strepA','strepOral','efaecalis','efaecium']],
+ ['bgp','🟪','Bacilles Gram + et actinomycètes',['listeria','cuti','cdiff','nocardia']],
+ ['gneg','🔴','Cocci et coccobacilles Gram −',['nmen','hinf']],
+ ['eb','🧬','Entérobactéries (groupes 0 → 6)',null],
+ ['bgnnf','🧪','BGN non fermentants',['paeru','abaum','steno']],
+ ['ana','🌑','Anaérobies stricts',['bfragilis','cuti','cdiff']],
+ ['intra','🔬','Bactéries intracellulaires',['legio','mycoplasma']],
+ ['lev','🍄','Levures',['calbicans','cglabrata','cparapsilosis','ckrusei','cauris','crypto']],
+ ['fil','🌿','Champignons filamenteux et Pneumocystis',['asp','mucor','fusarium','scedo','pcp']],
+ ['vir','🦠','Virus',['hsv','vzv','cmv','flu','covid','rsv']]
+];
 function viewGerms(){
- const list = window.GERMS.filter(g=>!germQ || (g.name+' '+g.cat+' '+(g.alias||[]).join(' ')).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').includes(germQ));
- const groups={}; list.forEach(g=>{(groups[g.cat]=groups[g.cat]||[]).push(g);});
+ const norm=t=>t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+ const match=g=>!germQ || norm(g.name+' '+g.cat+' '+(g.alias||[]).join(' ')).includes(germQ);
+ const by=Object.fromEntries(window.GERMS.map(g=>[g.id,g])), used=new Set();
+ const ebs=window.GERMS.filter(g=>g.ebg!=null).sort((a,b)=>a.ebg-b.ebg);
+ const tile=g=>`<a class="tile" href="#g-${g.id}"><b>${esc(g.name)}</b><span>${g.ebg!=null?`Groupe ${g.ebg}${g.heck?' · HECK-Yes':''} — `:''}${esc(g.epi).slice(0,100)}…</span></a>`;
+ let groups=GFAM.map(([id,ico,t,ids])=>{ const gs=(ids?ids.map(i=>by[i]):ebs).filter(Boolean); gs.forEach(g=>used.add(g.id)); return [id,ico,t,gs.filter(match)]; });
+ const rest=window.GERMS.filter(g=>!used.has(g.id)); if(rest.length) groups.push(['autres','📋','Autres',rest.filter(match)]);
+ groups=groups.filter(([, , ,gs])=>gs.length);
+ const fg=groups.map(([id,ico,t,gs])=>[id,ico,t,`${gs.length} fiche${gs.length>1?'s':''}`,
+   `${id==='eb' && !germQ?`<details class="sec" id="ebgrp"><summary><span class="ico">📊</span>Les 7 groupes de résistance naturelle et HECK-Yes</summary><div class="secbody">${ebGroupsHTML(null)}</div></details>`:''}<div class="tiles">${gs.map(tile).join('')}</div>`]);
  return `<section class="card"><div class="toolbar"><input type="search" id="germq" placeholder="Filtrer les germes…" value="${esc(germQ)}"><a class="btn" href="#pays">🌍 Risque BMR par pays</a></div>
- ${!germQ?`<details class="sec" id="ebgrp"><summary><span class="ico">🧬</span>Entérobactéries : les 7 groupes de résistance naturelle (0 → 6) et HECK-Yes</summary><div class="secbody">${ebGroupsHTML(null)}</div></details>`:''}
- ${Object.entries(groups).map(([c,gs])=>`<h3 class="grp">${esc(c)}</h3><div class="tiles">${gs.map(g=>`<a class="tile" href="#g-${g.id}"><b>${esc(g.name)}</b><span>${esc(g.epi).slice(0,100)}…</span></a>`).join('')}</div>`).join('')}</section>`;
+ ${fg.length? foldGroups('germ','gf',fg,{all:!!germQ}) : '<p class="muted">Aucun germe ne correspond.</p>'}</section>`;
 }
 function heckHTML(){
  const H=window.HECKYES||[];
@@ -503,21 +552,14 @@ const PORG=[
  ['sys','🚨','Sepsis sans point d\'appel, immunodéprimé',['choc','immunodep']],
  ['fong','🍄','Infections fongiques (tous organes)',['cand','cauris','aspergillose','mucormycose','pneumocystose','cryptococcose','moisissures_rares']]
 ];
-function pathoOpenGet(){ try{ return JSON.parse(localStorage.getItem('pathoOrgOpen')||'[]'); }catch(e){ return []; } }
-document.addEventListener('toggle', e=>{
- const d=e.target; if(!d || !d.matches || !d.matches('details.pcat')) return;
- try{ const all=[...document.querySelectorAll('details.pcat')].filter(x=>x.open).map(x=>x.dataset.cat); localStorage.setItem('pathoOrgOpen', JSON.stringify(all)); }catch(err){}
-}, true);
 function viewPathos(){
  const by=Object.fromEntries(window.PATHO.map(p=>[p.id,p])), used=new Set();
  const tile=p=>`<a class="tile" href="#p-${p.id}"><b>${esc(p.name)}</b><span>${esc(String(p.duree).replace(/<[^>]+>/g,'').slice(0,90))}</span></a>`;
  const groups=PORG.map(([id,ico,t,ids])=>{ const ps=ids.map(i=>by[i]).filter(Boolean); ps.forEach(p=>used.add(p.id)); return [id,ico,t,ps]; });
  const rest=window.PATHO.filter(p=>!used.has(p.id)); if(rest.length) groups.push(['autres','📋','Autres',rest]);
- const op=pathoOpenGet();
  return `<section class="card"><h2>Pathologies</h2>
- <nav class="jump">${groups.map(([id,ico,t,ps])=>`<button type="button" data-jump="po-${id}">${ico} ${esc(t.split(/[,(]/)[0].trim())} <span class="muted">${ps.length}</span></button>`).join('')}<button type="button" data-togall>⇕ Tout ouvrir/fermer</button></nav>
  <p class="muted small">Touchez un organe pour déplier ses pathologies (une même fiche peut apparaître dans plusieurs organes).</p>
- ${groups.map(([id,ico,t,ps])=>`<details class="sec pcat" id="po-${id}" data-cat="${id}"${op.includes(id)?' open':''}><summary><span class="ico">${ico}</span>${esc(t)} <span class="muted small" style="font-weight:500">· ${ps.length} fiche${ps.length>1?'s':''}</span></summary><div class="secbody"><div class="tiles">${ps.map(tile).join('')}</div></div></details>`).join('')}</section>`;
+ ${foldGroups('patho','po',groups.map(([id,ico,t,ps])=>[id,ico,t,`${ps.length} fiche${ps.length>1?'s':''}`,`<div class="tiles">${ps.map(tile).join('')}</div>`]))}</section>`;
 }
 function viewPatho(id){
  const p=window.PATHO.find(x=>x.id===id); if(!p) return '<p>Introuvable.</p>';
@@ -542,9 +584,11 @@ function viewPatho(id){
 }
 
 /* ---------- EXAMENS ---------- */
+const EXICO={'Microbiologie':'🧫','Biomarqueurs':'📈','Mycologie':'🍄','LCS / neuro':'🧠','Pharmacologie':'💊'};
 function viewExams(){
  const groups={}; window.EXAMS.forEach(e=>{(groups[e.cat]=groups[e.cat]||[]).push(e);});
- return `<section class="card">${Object.entries(groups).map(([c,es])=>`<h3 class="grp">${esc(c)}</h3><div class="tiles">${es.map(e=>`<a class="tile" href="#e-${e.id}"><b>${esc(e.name)}</b><span>${esc(e.princ).slice(0,90)}…</span></a>`).join('')}</div>`).join('')}</section>`;
+ const g=Object.entries(groups).map(([c,es],i)=>['c'+i,EXICO[c]||'🔬',c,`${es.length} fiche${es.length>1?'s':''}`,`<div class="tiles">${es.map(e=>`<a class="tile" href="#e-${e.id}"><b>${esc(e.name)}</b><span>${esc(e.princ).slice(0,90)}…</span></a>`).join('')}</div>`]);
+ return `<section class="card"><h2>Examens</h2>${foldGroups('exam','ex',g)}</section>`;
 }
 function viewExam(id){
  const e=window.EXAMS.find(x=>x.id===id); if(!e) return '<p>Introuvable.</p>';
@@ -782,15 +826,15 @@ function viewIVT(){
 /* ---------- RÉFÉRENCES ---------- */
 function viewRefs(){
  const by={FR:[],EU:[],US:[]}; Object.entries(R).forEach(([k,r])=>(by[r.lvl]||by.EU).push([k,r]));
- const sec=(t,a)=>`<h3 class="grp">${t}</h3><ol class="reflist">${a.map(([k,r])=>`<li><a href="${esc(r.u)}" target="_blank" rel="noopener">${esc(r.t)}</a> — <span class="muted">${esc(r.s)}</span></li>`).join('')}</ol>`;
+ const sec=(t,a)=>`<ol class="reflist">${a.map(([k,r])=>`<li><a href="${esc(r.u)}" target="_blank" rel="noopener">${esc(r.t)}</a> — <span class="muted">${esc(r.s)}</span></li>`).join('')}</ol>`;
  return `<section class="card"><h2>Références</h2>
  <div class="note">Hiérarchie appliquée : recommandations françaises en priorité (en cas de divergence, <b>SFAR/SRLF privilégiée</b> et divergence signalée), puis européennes, puis américaines. ePOPI (CMIT) et GPR servent de référentiels thérapeutiques complémentaires (abonnement). Posologies de base : annexe SPILF/SFPT/CA-SFM 2025 ; adaptation rénale : RCP/GPR ; obésité : abxbmi.</div>
- ${sec('Françaises',by.FR)}${sec('Européennes / internationales',by.EU)}${sec('Américaines',by.US)}</section>
- <section class="card noabbr" id="glossaire"><h2>Glossaire des acronymes</h2><p class="muted small">Dans toute l'application, les acronymes soulignés en pointillés affichent leur signification au survol ou au toucher.</p><dl class="gloss">${Object.keys(GL).sort((a,b)=>a.localeCompare(b,'fr',{sensitivity:'base'})).map(k=>`<dt>${esc(k)}</dt><dd>${esc(GL[k])}</dd>`).join('')}</dl></section>`;
+ ${foldGroups('refs','rf',[['fr','🇫🇷','Françaises',by.FR.length,sec('',by.FR)],['eu','🇪🇺','Européennes / internationales',by.EU.length,sec('',by.EU)],['us','🇺🇸','Américaines',by.US.length,sec('',by.US)]])}</section>
+ <section class="card noabbr"><details class="sec" id="glossaire"><summary><span class="ico">🔤</span>Glossaire des acronymes <span class="muted small" style="font-weight:500">· ${Object.keys(GL).length}</span></summary><div class="secbody"><p class="muted small">Dans toute l'application, les acronymes soulignés en pointillés affichent leur signification au survol ou au toucher.</p><dl class="gloss">${Object.keys(GL).sort((a,b)=>a.localeCompare(b,'fr',{sensitivity:'base'})).map(k=>`<dt>${esc(k)}</dt><dd>${esc(GL[k])}</dd>`).join('')}</dl></div></details></section>`;
 }
 
 /* ---------- ANTIBIOGRAMME ---------- */
-const APP_VERSION='1.29';
+const APP_VERSION='1.30';
 let SAMPLE = null, sampleImages=false;
 const PHOTO = {msg:'', thumbs:[]}; let PHOTO_TARGET='abg';
 function photoMsg(h){ PHOTO.msg=h; const m=document.getElementById('photomsg'); if(m) m.innerHTML=h; }
@@ -1200,7 +1244,7 @@ function render(){
  $$('[data-newiso]',main).forEach(b=>b.onclick=()=>{ AB.isolates.push({germ:b.dataset.newiso, ast:{}, ph:{}}); saveAB(); location.hash='#antibiogramme'; });
  $$('[data-site]',main).forEach(b=>b.onclick=()=>{ const s=b.dataset.site; if(!AB.sites.includes(s)) AB.sites.push(s); saveAB(); location.hash='#antibiogramme'; });
  renderPatientChip();
- if(anchor){ const el=document.getElementById(anchor); if(el){ if(el.tagName==='DETAILS') el.open=true; setTimeout(()=>el.scrollIntoView({block:'start'}),30); } }
+ if(anchor){ const el=document.getElementById(anchor); if(el){ if(el.tagName==='DETAILS') el.open=true; let pd=el.parentElement&&el.parentElement.closest('details'); while(pd){ pd.open=true; pd=pd.parentElement&&pd.parentElement.closest('details'); } setTimeout(()=>el.scrollIntoView({block:'start'}),30); } }
 }
 function init(){
  $('#tabs').innerHTML = TABS.map(([k,l])=>`<a href="#${k}">${l}</a>`).join('');
