@@ -262,7 +262,23 @@ function viewGerms(){
  const list = window.GERMS.filter(g=>!germQ || (g.name+' '+g.cat+' '+(g.alias||[]).join(' ')).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').includes(germQ));
  const groups={}; list.forEach(g=>{(groups[g.cat]=groups[g.cat]||[]).push(g);});
  return `<section class="card"><div class="toolbar"><input type="search" id="germq" placeholder="Filtrer les germes…" value="${esc(germQ)}"><a class="btn" href="#pays">🌍 Risque BMR par pays</a></div>
+ ${!germQ?`<details class="sec" id="ebgrp"><summary><span class="ico">🧬</span>Entérobactéries : les 7 groupes de résistance naturelle (0 → 6) et HECK-Yes</summary><div class="secbody">${ebGroupsHTML(null)}</div></details>`:''}
  ${Object.entries(groups).map(([c,gs])=>`<h3 class="grp">${esc(c)}</h3><div class="tiles">${gs.map(g=>`<a class="tile" href="#g-${g.id}"><b>${esc(g.name)}</b><span>${esc(g.epi).slice(0,100)}…</span></a>`).join('')}</div>`).join('')}</section>`;
+}
+function heckHTML(){
+ const H=window.HECKYES||[];
+ return `<div class="heck"><div class="heck-t">HECK-Yes — groupe 3 « fortement mutants »</div><div class="heck-l">${H.map(([l,n,id])=>`<a href="#g-${id}"><b>${l}</b> <i>${esc(n)}</i></a>`).join('')}</div>
+ <ul class="pts"><li>AmpC chromosomique inductible avec un taux de mutation vers la <b>dérépression</b> élevé : une C3G (et à un moindre degré la pipéracilline-tazobactam) peut sélectionner un mutant résistant en cours de traitement, même si l'antibiogramme initial est S.</li>
+ <li>En pratique : infection grave ou à fort inoculum → <b>céfépime</b> (si CMI ≤ 1 mg/L, pas de BLSE), FQ ou cotrimoxazole si S, carbapénème si BLSE.</li>
+ <li>Risque de dérépression clinique bien documenté pour E. cloacae, K. aerogenes et C. freundii ; Hafnia alvei et Yersinia enterocolitica sont moins étudiés (IDSA 2024). Remplace l'ancien moyen mnémotechnique SPICE/SPACE, qui mêlait espèces faiblement mutantes (Serratia, Providencia, Morganella) et non-entérobactéries.</li></ul></div>`;
+}
+function ebGroupsHTML(cur){
+ const E=window.EBGROUPS||[];
+ return `<table class="tbl tx ebg"><tr><th>Groupe</th><th>Enzyme naturelle</th><th>Espèces</th><th>Phénotype naturel (β-lactamines)</th><th>En pratique</th></tr>
+ ${E.map(r=>`<tr class="${r.g===cur?'cur':''}"><td><b>${r.g}</b></td><td>${r.enz}</td><td>${r.sp.map(([n,id])=>id?`<a href="#g-${id}"><i>${esc(n)}</i></a>`:`<i>${esc(n)}</i>`).join(' · ')}</td><td>${r.ph}</td><td>${r.cq}</td></tr>`).join('')}</table>
+ ${cur==null||cur===3||cur===4?heckHTML():''}
+ <p class="muted small">Toutes les entérobactéries sont en outre naturellement résistantes à la pénicilline G, aux pénicillines M, aux glycopeptides, à l'acide fusidique, aux macrolides (sauf azithromycine dans les salmonelloses), aux lincosamides, à la rifampicine et aux oxazolidinones (EUCAST 2023). Classification : L. Armand-Lefèvre (SPILF/DESC 2023) ; groupe 6 et répartition détaillée : microbiologie-clinique.com.</p>
+ ${refChips(['armand23','eucast_erp23','microclin','kohlmann18','idsa_amr24','heckyes22'])}`;
 }
 const HLAB = {'1':['1re intention','h1'],'2':['Alternative','h2'],'A':['Allergie β-lactamines','hA'],'R':['Dernier recours','hR'],'X':['À éviter','hX']};
 function hierHTML(id){
@@ -275,6 +291,7 @@ function viewGerm(id){
  return `<section class="card"><a class="back" href="#germes">← Germes</a><h2>${esc(g.name)} <small class="muted">${esc(g.cat)}</small></h2>
  ${secs([
   {id:'s-hier', ico:'🏆', t:'Traitement hiérarchisé', raw:true, html:hierHTML(g.id), open:true},
+  ...(g.ebg!=null?[{id:'s-grp', ico:'🧬', t:`Groupe ${g.ebg} des entérobactéries${g.heck?' · HECK-Yes':''} — résistance naturelle aux β-lactamines`, raw:true, html:ebGroupsHTML(g.ebg), open:!!g.heck||g.ebg===4}]:[]),
   ...(['saureus','scn','cuti'].includes(g.id)?[{id:'s-biof', ico:'🧫', t:'Infection sur matériel (biofilm)', raw:true, html:'<p>DVE, dérivation, matériel rachidien, cathéter, prothèse : voir la fiche <a href="#pharmaco-bio">Antibiothérapie anti-biofilm</a> (rifampicine en association, moment d\'introduction, verrous).</p>', open:false}]:[]),
   ...(['saureus','strepA'].includes(g.id)?[{id:'s-atx', ico:'🧪', t:'Formes toxiniques', raw:true, html:'<p>Choc toxique, DHBN, pneumonie nécrosante à S. aureus PVL : voir la fiche <a href="#pharmaco-atx">Antibiothérapie antitoxinique (puissance comparée)</a>.</p>', open:true}]:[]),
   {id:'s-fr', ico:'📊', t:'Résistances en France (%)', raw:true, html:epiTable(((window.EPIFR||{}).germ||{})[g.id],'Antibiotique (% résistant)')+(((window.EPIFR||{}).germ||{})[g.id]?'<p class="muted small">% de souches résistantes sauf mention ; sources françaises (EARS-Net France = hémocultures/LCS ; REA-REZO = infections acquises en réanimation ; PRIMO = ville/Ehpad). L\'écologie locale prime.</p>':'')},
@@ -749,7 +766,7 @@ function viewRefs(){
 }
 
 /* ---------- ANTIBIOGRAMME ---------- */
-const APP_VERSION='1.25';
+const APP_VERSION='1.26';
 let SAMPLE = null, sampleImages=false;
 const PHOTO = {msg:'', thumbs:[]}; let PHOTO_TARGET='abg';
 function photoMsg(h){ PHOTO.msg=h; const m=document.getElementById('photomsg'); if(m) m.innerHTML=h; }
@@ -1100,6 +1117,7 @@ function searchAll(q){
   ['esin e-sin ias cas groupes aes accident exposition','#hygiene','🏥 Signalement des IAS (e-SIN), AES'],
   ['cloxacilline céfazoline cefazoline cloceba snap néphrotoxicité sams','#pharmaco-tox:cfzclox','⚖️ Cloxacilline vs céfazoline (CloCeBa, SNAP)'],
   ['antibioprophylaxie radiologie interventionnelle gastrostomie néphrostomie jj stent cimentoplastie vissage rachis craniotomie','#antibioprophylaxie','🏥 Antibioprophylaxie — protocoles NAR neurochirurgie et radiologie interventionnelle'],
+  ['groupes entérobactéries groupe heck yes heck-yes ampc spice citrobacter koseri','#germes:ebgrp','🧬 Entérobactéries : groupes 0 → 6 et HECK-Yes'],
   ['intrathécal intrathecal intraventriculaire ivt ith dve ommaya colistine intraventriculaire','#pharmaco-ivt','💉 Antibiothérapie intrathécale / intraventriculaire (Pharmaco)'],
   ['biofilm anti-biofilm antibiofilm matériel dve dérivation verrou lock rifampicine prothèse','#pharmaco-bio','🧫 Antibiothérapie anti-biofilm (Pharmaco)'],
   ['antitoxinique antitoxine toxine pvl choc toxique clindamycine','#pharmaco-atx','🧪 Antibiothérapie antitoxinique (Pharmaco)'],

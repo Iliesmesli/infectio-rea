@@ -1,5 +1,8 @@
 /* GLOSSAIRE DES ACRONYMES — affichés au survol / toucher dans toute l'app et listés dans l'onglet Références */
 window.GLOSS = {
+ 'HECK-Yes':"Moyen mnémotechnique des entérobactéries à céphalosporinase AmpC inductible à risque de dérépression sous traitement : Hafnia alvei, Enterobacter cloacae complex, Citrobacter freundii, Klebsiella aerogenes, Yersinia enterocolitica",
+ 'SPICE':"Ancien moyen mnémotechnique des bactéries à AmpC inductible (Serratia, Providencia/Pseudomonas, Indole-positive Proteus/Acinetobacter, Citrobacter, Enterobacter), remplacé par HECK-Yes (il mêle espèces à faible risque et non-entérobactéries)",
+ 'AmpC':"Céphalosporinase de classe C (chromosomique, inductible chez les entérobactéries du groupe 3, ou plasmidique)",
  'IVT':"Intraventriculaire (injection dans les ventricules cérébraux, par DVE ou réservoir)",
  'ITH':"Intrathécal (injection dans l'espace sous-arachnoïdien, en pratique lombaire)",
  'Ommaya':"Réservoir d'Ommaya : réservoir sous-cutané relié à un cathéter intraventriculaire, permettant ponctions et injections",

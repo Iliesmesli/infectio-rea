@@ -71,7 +71,8 @@ const NAT = {
  steno:['ampsulb','merope','imipeneme','ertapeneme','amika','genta','tobra','amox','amoxclav','cefotax','ceftriax','pipetazo','temo','aztreo','fosfo','colistine'],
  anaer:['amika','genta','tobra','aztreo','temo','colistine','cotrimox']
 };
-const NAT_GERM = { pmirabilis:['colistine','tigec','erava','doxy'], morganella:['colistine','tigec','erava','doxy','amoxclav'], serratia:['colistine','doxy'],
+const NAT_GERM = { hafnia:['colistine'], pvulgaris:['amox','cefazoline','doxy','colistine'], yersinia:['ampsulb'], kluyvera:['amox','cefazoline'], ecloacae:['ampsulb'], kaerogenes:['ampsulb'], cfreundii:['ampsulb'],
+  pmirabilis:['colistine','tigec','erava','doxy'], morganella:['colistine','tigec','erava','doxy','amoxclav'], serratia:['colistine','doxy'],
   efaecium:[], ckrusei:['fluco'], mucor:['vorico','fluco','caspo','mica','anidula'], crypto:['caspo','mica','anidula'], asp:['fluco'], fusarium:['fluco','caspo','mica','anidula'], scedo:['fluco','caspo','mica','anidula'] };
 const BL = ['peniG','amox','amoxclav','ampsulb','cloxa','pipetazo','temo','cefazoline','cefotax','ceftriax','ceftaz','cefepime','ceftaroline','ceftolo','cazavi','cefiderocol','merope','imipeneme','ertapeneme','imirele','merovabor','aztreo','aztavi'];
 const PENI = ['peniG','amox','amoxclav','ampsulb','cloxa','pipetazo','temo'];
