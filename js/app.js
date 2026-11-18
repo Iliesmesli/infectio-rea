@@ -33,7 +33,7 @@ function annotate(root){
 /* ---------- liens automatiques vers les recommandations citées dans le texte (ex. « SPILF 2016 », « RFE SFAR 2026 ») ---------- */
 const RORGS='SFAR|SPILF|SRLF|SF2H|HCSP|HAS|ANSM|ESCMID|ESC|IDSA|ECIL|ECMM|EORTC|SSC|SPLF|SFPT|SFPC|CA-SFM|EUCAST|ESICM|CORRUSS|DGS|BTS|EASL|WSES|SCCM|CPIC|NIH|AFU|GPIP|SFD|ASHP|ECDC|OMS|ePOPI|MSGERC|ISHAM|ASM|GFRUP|SFMU|AFC|ADARPEF|PIDS|SIDP|ISAP|ACCP|SIS-E|EMA|MHRA|AEPEI|ERS';
 const RLRE=new RegExp('(^|[^A-Za-z0-9])((?:RFE |Recos? )?(?:'+RORGS+')(?:-\\d)?(?:/(?:'+RORGS+'|[A-Z][A-Za-z0-9-]+))*(?: \\(avec [A-Z]+\\))?,? (?:(?:janvier|février|mars|avril|mai|juin|juillet|août|septembre|octobre|novembre|décembre) )?((?:19|20)\\d{2})(?:/(?:19|20)\\d{2})?)(?![0-9])','g');
-const RL_ALIAS={'ePOPI 2025':'epopi','HAS 2019':'has_carba19','SFAR/SRLF 2017':'sfar_pavm17fr','CA-SFM 2025':'casfm25','SF2H 2025':'sf2h_resp_faq25','SFAR 2015':'sfar_iia15','SPILF 2015':'spilf_iuas15','SPILF 2021':'spilf_durees21','SPILF 2025':'spilf_perf25','SRLF 2020':'srlf_kt20'};
+const RL_ALIAS={'ePOPI 2025':'epopi','HAS 2019':'has_carba19','SFAR/SRLF 2017':'sfar_pavm17fr','CA-SFM 2025':'casfm25','SF2H 2025':'sf2h_resp_faq25','SFAR 2015':'sfar_iia15','SPILF 2015':'spilf_iuas15','SPILF 2021':'spilf_durees21','SPILF 2025':'spilf_perf25','SRLF 2020':'srlf_kt20','SPILF 2017':'spilf_enceph17'};
 function rlOrgs(tok){ return tok.replace(/^(RFE|Recos?) /,'').replace(/\(avec ([A-Z]+)\)/,'/$1').replace(/,? ((janvier|février|mars|avril|mai|juin|juillet|août|septembre|octobre|novembre|décembre) )?(19|20)\d{2}(\/(19|20)\d{2})?$/,'').split('/').map(x=>x.trim()).filter(Boolean); }
 function refFor(tok,onPage){
  const t=tok.replace(/^(RFE|Recos?) /,''); const y=(t.match(/(19|20)\d{2}/)||[])[0];
@@ -542,15 +542,18 @@ function bindABP(root){
 /* ---------- PATHOLOGIES ---------- */
 /* Dépliants par organe : une pathologie peut figurer dans plusieurs organes */
 const PORG=[
- ['snc','🧠','Système nerveux central',['mening','ventri','abces','enceph','cryptococcose','nocardiose']],
- ['pulm','🫁','Poumon et voies aériennes',['pavm','pac','inhal','abces_pulm','grippe','pneumocystose','aspergillose','nocardiose']],
+ ['snc','🧠','Système nerveux central',['mening','ventri','abces','enceph','tvc_sept','volet','tb_grave','cryptococcose','nocardiose']],
+ ['tox','☠️','Maladies toxiniques (tétanos, botulisme)',['tetanos','botulisme']],
+ ['rachis','🦴','Rachis, os, articulations et matériel',['idv','arthrite','volet','prothvasc','ecmo']],
+ ['pulm','🫁','Poumon et voies aériennes',['pavm','pac','inhal','abces_pulm','empyeme','grippe','pneumocystose','aspergillose','nocardiose']],
  ['orl','👃','ORL, cou et face',['cervical','sinusite','thrombo','mucormycose']],
- ['thorax','🫀','Médiastin',['mediastinite']],
- ['sang','🩸','Sang, cathéters, cœur et vaisseaux',['bact_kt','thrombo','endoc','cand','cauris']],
+ ['thorax','🫀','Médiastin et plèvre',['mediastinite','empyeme']],
+ ['sang','🩸','Sang, cathéters, cœur et vaisseaux',['bact_kt','thrombo','endoc','ecmo','prothvasc','cand','cauris']],
  ['uri','💧','Voies urinaires',['iu','iuas']],
- ['abdo','🫃','Abdomen et tube digestif',['iia','cdi']],
+ ['abdo','🫃','Abdomen et tube digestif',['iia','biliaire','pancreatite','isla','cdi']],
  ['peau','🩹','Peau et tissus mous',['dhbn','fournier','mucormycose']],
- ['sys','🚨','Sepsis sans point d\'appel, immunodéprimé',['choc','immunodep']],
+ ['sys','🚨','Sepsis sans point d\'appel, immunodéprimé',['choc','immunodep','herpes_rea']],
+ ['imp','🌍','Infections importées, zoonoses, tuberculose, virus',['palu','lepto','tb_grave','herpes_rea']],
  ['fong','🍄','Infections fongiques (tous organes)',['cand','cauris','aspergillose','mucormycose','pneumocystose','cryptococcose','moisissures_rares']]
 ];
 function viewPathos(){
@@ -580,7 +583,7 @@ function viewPatho(id){
   {id:'s-fr', ico:'📊', t:'Germes en France (%)', raw:true, html:epiTable(((window.EPIFR||{}).patho||{})[p.id],'Micro-organisme')},
   {id:'s-div', ico:'⚖', t:'Recommandations : concordance / divergences', html:p.div}
  ])}
- <p><button class="btn" data-site="${p.site}">➕ Sélectionner ce site dans l'antibiogramme</button></p>
+ ${p.site?`<p><button class="btn" data-site="${p.site}">➕ Sélectionner ce site dans l'antibiogramme</button></p>`:''}
  <h3>Références</h3>${refList([...new Set([...((window.NARPATHO||{})[p.id]?['nar25']:[]), ...p.refs.filter(x=>x!=='nar25'), ...((window.ANNEXE||{})[p.id]||[]).flatMap(b=>b.refs||[]), ...((((window.EPIFR||{}).patho||{})[p.id])||[]).map(b=>b.ref).filter(Boolean)])])}</section>`;
 }
 
@@ -835,7 +838,7 @@ function viewRefs(){
 }
 
 /* ---------- ANTIBIOGRAMME ---------- */
-const APP_VERSION='1.32';
+const APP_VERSION='1.33';
 let SAMPLE = null, sampleImages=false;
 const PHOTO = {msg:'', thumbs:[]}; let PHOTO_TARGET='abg';
 function photoMsg(h){ PHOTO.msg=h; const m=document.getElementById('photomsg'); if(m) m.innerHTML=h; }
@@ -1181,7 +1184,23 @@ function searchAll(q){
  q = q.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,''); if(q.length<2) return '';
  const m = s => (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').includes(q);
  const r=[];
- const KW=[['mediastinite sternite sternotomie chirurgie cardiaque cervicomediastinite descendante boerhaave perforation oesophage fistule anastomotique','#p-mediastinite','🫀 Médiastinites (post-sternotomie, descendante, œsophagienne)'],
+ const KW=[['paludisme grave acces palustre artesunate plasmodium falciparum','#p-palu','🌍 Paludisme grave'],
+  ['tuberculose meningite tuberculeuse miliaire rhze quadritherapie','#p-tb_grave','🌍 Tuberculose grave (méningite, miliaire)'],
+  ['leptospirose maladie de weil rongeurs','#p-lepto','🌍 Leptospirose grave'],
+  ['reactivation hsv cmv herpes reanimation aciclovir ganciclovir vzv zona dissemine varicelle','#p-herpes_rea','🦠 Réactivations HSV/CMV, VZV disséminé'],
+  ['ecmo assistance circulatoire canule infection de canule oxygenation extracorporelle','#p-ecmo','🩸 Infections sous ECMO'],
+  ['prothese vasculaire endoprothese aortique pontage infection magic fistule aorto-digestive','#p-prothvasc','🩸 Infection de prothèse vasculaire'],
+  ['arthrite septique articulation native genou hanche ponction articulaire','#p-arthrite','🦴 Arthrite septique'],
+  ['pleuresie purulente empyeme pleural drain pleural fibrinolyse intrapleurale alteplase dornase','#p-empyeme','🫁 Pleurésie purulente / empyème'],
+  ['angiocholite cholecystite alithiasique voies biliaires cpre drainage biliaire','#p-biliaire','🫃 Infections biliaires'],
+  ['pancreatite necrosante infectee necrose pancreatique step-up necrosectomie','#p-pancreatite','🫃 Pancréatite nécrosante infectée'],
+  ['infection liquide ascite isla peritonite bacterienne spontanee cirrhose albumine','#p-isla','🫃 Infection du liquide d\'ascite'],
+  ['spondylodiscite infection disco vertebrale discite epidurite abces epidural rachis infection site operatoire arthrodese osteosynthese','#p-idv','🦴 Infections disco-vertébrales et rachidiennes'],
+  ['osteite du volet volet cranien cranioplastie craniectomie infection site operatoire craniotomie','#p-volet','🧠 Ostéite du volet et infection de cranioplastie'],
+  ['thrombophlebite cerebrale septique thrombose sinus caverneux sinus lateral otogene mastoidite','#p-tvc_sept','🧠 Thrombophlébites cérébrales septiques'],
+  ['tetanos tetanospasmine trismus immunoglobulines antitetaniques','#p-tetanos','☠️ Tétanos'],
+  ['botulisme toxine botulique antitoxine e-saturne','#p-botulisme','☠️ Botulisme'],
+  ['mediastinite sternite sternotomie chirurgie cardiaque cervicomediastinite descendante boerhaave perforation oesophage fistule anastomotique','#p-mediastinite','🫀 Médiastinites (post-sternotomie, descendante, œsophagienne)'],
   ['abces orl abces peri amygdalien phlegmon peri-amygdalien retropharynge parapharynge cellulite cervicale ludwig trismus torticolis','#p-cervical','👃 Infections cervicales profondes (abcès ORL)'],
   ['isolement precautions contact gouttelettes air respiratoire ffp2 masque hygiene eoh','#hygiene','🧼 Hygiène : isolements et précautions'],
   ['mdo mso declaration signalement obligatoire ars point focal cerfa','#hygiene','📣 Maladies à signalement obligatoire (MSO/MDO) — ARS Nouvelle-Aquitaine'],
