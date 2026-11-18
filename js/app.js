@@ -491,9 +491,25 @@ function bindABP(root){
 }
 
 /* ---------- PATHOLOGIES ---------- */
+/* Dépliants par organe : une pathologie peut figurer dans plusieurs organes */
+const PORG=[
+ ['snc','🧠','Système nerveux central',['mening','ventri','abces','enceph','cryptococcose','nocardiose']],
+ ['pulm','🫁','Poumon et voies aériennes',['pavm','pac','inhal','abces_pulm','grippe','pneumocystose','aspergillose','nocardiose']],
+ ['orl','👃','ORL et face',['sinusite','thrombo','mucormycose']],
+ ['sang','🩸','Sang, cathéters, cœur et vaisseaux',['bact_kt','thrombo','endoc','cand','cauris']],
+ ['uri','💧','Voies urinaires',['iu','iuas']],
+ ['abdo','🍽️','Abdomen et tube digestif',['iia','cdi']],
+ ['peau','🩹','Peau et tissus mous',['dhbn','fournier','mucormycose']],
+ ['sys','🔥','Sepsis sans point d\'appel, immunodéprimé',['choc','immunodep']],
+ ['fong','🍄','Infections fongiques (tous organes)',['cand','cauris','aspergillose','mucormycose','pneumocystose','cryptococcose','moisissures_rares']]
+];
 function viewPathos(){
- const groups={}; window.PATHO.forEach(p=>{(groups[p.cat]=groups[p.cat]||[]).push(p);});
- return `<section class="card">${Object.entries(groups).map(([c,ps])=>`<h3 class="grp">${esc(c)}</h3><div class="tiles">${ps.map(p=>`<a class="tile" href="#p-${p.id}"><b>${esc(p.name)}</b><span>${esc(String(p.duree).replace(/<[^>]+>/g,'').slice(0,90))}</span></a>`).join('')}</div>`).join('')}</section>`;
+ const by=Object.fromEntries(window.PATHO.map(p=>[p.id,p])), used=new Set();
+ const tile=p=>`<a class="tile" href="#p-${p.id}"><b>${esc(p.name)}</b><span>${esc(String(p.duree).replace(/<[^>]+>/g,'').slice(0,90))}</span></a>`;
+ const groups=PORG.map(([id,ico,t,ids])=>{ const ps=ids.map(i=>by[i]).filter(Boolean); ps.forEach(p=>used.add(p.id)); return [id,ico,t,ps]; });
+ const rest=window.PATHO.filter(p=>!used.has(p.id)); if(rest.length) groups.push(['autres','📋','Autres',rest]);
+ return `<section class="card"><p class="muted small">Touchez un organe pour déplier ses pathologies (une même fiche peut apparaître dans plusieurs organes).</p>
+ ${groups.map(([id,ico,t,ps])=>`<details class="sec" id="po-${id}"><summary><span class="ico">${ico}</span>${esc(t)} <span class="muted small" style="font-weight:400">(${ps.length})</span></summary><div class="secbody"><div class="tiles">${ps.map(tile).join('')}</div></div></details>`).join('')}</section>`;
 }
 function viewPatho(id){
  const p=window.PATHO.find(x=>x.id===id); if(!p) return '<p>Introuvable.</p>';
@@ -766,7 +782,7 @@ function viewRefs(){
 }
 
 /* ---------- ANTIBIOGRAMME ---------- */
-const APP_VERSION='1.27';
+const APP_VERSION='1.28';
 let SAMPLE = null, sampleImages=false;
 const PHOTO = {msg:'', thumbs:[]}; let PHOTO_TARGET='abg';
 function photoMsg(h){ PHOTO.msg=h; const m=document.getElementById('photomsg'); if(m) m.innerHTML=h; }
