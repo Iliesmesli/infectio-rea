@@ -151,6 +151,11 @@ window.HIER = {
  ],
  morganella: [
   {s:'Céphalosporinase basale (faiblement mutant)', t:[['1','C3G ou céfépime.'],['2','FQ, cotrimoxazole.'],['X','Colistine, tigécycline, amox-clav, imipénème (CMI élevées) : préférer le méropénème.']]},
+  {s:'SNC : méningite, ventriculite (souche sauvage)', t:[
+   ['1','Foyer contrôlé (DVE retirée ou changée, pas d\'abcès) : <b>céfotaxime 200 mg/kg/j IVSE</b> après dose de charge (dose méningée NAR), si CMI ≤ 1 mg/L.'],
+   ['1','Fort inoculum ou foyer mal contrôlé (DVE ou matériel laissé en place, ventriculite purulente, abcès, empyème, échec) : <b>céfépime 2 g puis 6 g/24 h IVSE</b> (stable vis-à-vis de l\'AmpC ; IDSA 2024) — dosage à 48 h ± EEG (neurotoxicité).'],
+   ['A','Allergie ou échec : <b>méropénème 2 g × 3/j sur 3 h</b> ; ou, si S, ciprofloxacine, lévofloxacine ou cotrimoxazole à dose méningée (bonne diffusion dans le LCS).'],
+   ['X','Imipénème (CMI naturellement élevées, seuil épileptogène), pip-tazo et aminoside IV seul (diffusion méningée insuffisante), colistine y compris intraventriculaire, tigécycline (résistances naturelles).']]},
   {s:'Céphalosporinase hyperproduite / BLSE', t:[['1','Céfépime si S ; sinon méropénème.']]}
  ],
  paeru: [
