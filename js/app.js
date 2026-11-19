@@ -22,12 +22,14 @@ const FT = window.FDR_TERMS||{};
 const GKEYS = [...new Set([...Object.keys(GL).filter(k=>k.length>=2 && !NOANN.has(k)), ...Object.keys(FT)])].sort((a,b)=>b.length-a.length);
 const GSRC = ('(^|[^A-Za-zÀ-ÿ0-9\\-])(' + GKEYS.map(k=>k.replace(/[.*+?^${}()|[\]\\\/]/g,'\\$&')).join('|') + ')(?![A-Za-zÀ-ÿ0-9])');
 const GRE = new RegExp(GSRC,'g'), GRE1 = new RegExp(GSRC);
+function fdrCtx(after,before){ if(/^\s*[=(]/.test(after)) return ''; if(/^\s*:/.test(after)) return /(?:Précoce|précoce|Tardive|tardive)\b[^.;]*$/.test(before)?'bmr':''; for(const [re,k] of (window.FDR_CTX||[])) if(re.test(after)) return k;
+ if(/^\s*(?:de |d['’])/.test(after)) return ''; let best='',pos=-1; for(const [re,k] of (window.FDR_BEFORE||[])){ const g=new RegExp(re.source,'g'); let m; while((m=g.exec(before))){ if(m.index>pos){ pos=m.index; best=k; } } } return best; }
 function annotate(root){
  const skip = new Set(['SCRIPT','STYLE','INPUT','SELECT','OPTION','TEXTAREA','BUTTON','ABBR','SUMMARY','A']);
  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {acceptNode(n){ let p=n.parentNode; while(p && p!==root){ if(skip.has(p.nodeName)|| (p.classList&&p.classList.contains('noabbr'))) return NodeFilter.FILTER_REJECT; p=p.parentNode; } return GRE1.test(n.nodeValue)? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT; }});
  const nodes=[]; let n; while((n=walker.nextNode())) nodes.push(n);
  nodes.forEach(t=>{ GRE.lastIndex=0; const frag=document.createDocumentFragment(); let last=0, m; const v=t.nodeValue;
-   while((m=GRE.exec(v))){ const start=m.index+m[1].length; frag.append(v.slice(last,start)); const a=document.createElement('abbr'); a.textContent=m[2]; const inF=!!(t.parentNode.closest&&t.parentNode.closest('.fdrbox,summary,h2,h3,.tile b')); if(!GL[m[2]] && inF){ frag.append(m[2]); last=start+m[2].length; continue; } if(GL[m[2]]) a.title=GL[m[2]]; a.dataset.g=m[2]; if(FT[m[2]] && !inF){ a.dataset.f=FT[m[2]]; a.className='fdr'; } frag.append(a); last=start+m[2].length; }
+   while((m=GRE.exec(v))){ const start=m.index+m[1].length; frag.append(v.slice(last,start)); const a=document.createElement('abbr'); a.textContent=m[2]; const inF=!!(t.parentNode.closest&&t.parentNode.closest('.fdrbox,summary,h2,h3,.tile b')); if(!GL[m[2]] && inF){ frag.append(m[2]); last=start+m[2].length; continue; } if(GL[m[2]]) a.title=GL[m[2]]; a.dataset.g=m[2]; let fk=FT[m[2]]; if(m[2]==='FdR' && !inF){ const blk=t.parentNode.closest&&t.parentNode.closest('li,p,td,.secbody,div'); fk=fdrCtx(v.slice(start+3,start+70), v.slice(Math.max(0,start-70),start)); if(!fk && blk && annotate._blk===blk && !/^\s*[:=(]/.test(v.slice(start+3))) fk=annotate._fk; if(fk){ annotate._blk=blk; annotate._fk=fk; } } if(fk && !inF){ a.dataset.f=fk; a.className='fdr'; } frag.append(a); last=start+m[2].length; }
    frag.append(v.slice(last)); const w=document.createElement('x-g'); w.append(frag); t.parentNode.replaceChild(w,t); });
 }
 /* ---------- liens automatiques vers les recommandations citées dans le texte (ex. « SPILF 2016 », « RFE SFAR 2026 ») ---------- */
@@ -838,7 +840,7 @@ function viewRefs(){
 }
 
 /* ---------- ANTIBIOGRAMME ---------- */
-const APP_VERSION='1.35';
+const APP_VERSION='1.36';
 let SAMPLE = null, sampleImages=false;
 const PHOTO = {msg:'', thumbs:[]}; let PHOTO_TARGET='abg';
 function photoMsg(h){ PHOTO.msg=h; const m=document.getElementById('photomsg'); if(m) m.innerHTML=h; }
@@ -1165,7 +1167,7 @@ function viewHygiene(){
   {id:'h-iso', ico:'🚪', t:'Isolements : niveaux de précautions', html:H.niveaux, open:true},
   {id:'h-tab', ico:'📋', t:'Isolement selon le micro-organisme', raw:true, html:`<div class="tblwrap">${tbl}</div>`, open:true},
   {id:'h-bhre', ico:'🌍', t:'BMR / BHRe, dépistage et séjour à l\'étranger', raw:true, html:`<p>Règles générales (HCSP 2019 : dépistage BHRe de tout patient hospitalisé ≥ 24 h à l'étranger dans l'année, précautions jusqu'aux résultats) et préconisations par pays et par situation :</p><p><a class="btn" href="#pays">🌍 BMR/BHRe par pays</a> <a class="btn" href="#e-depistage">🧪 Dépistage BMR/BHRe</a></p>`},
-  {id:'fdr', ico:'⚑', t:'Facteurs de risque de BMR / BHRe (et autres germes à couvrir)', raw:true, html:`<p class="muted small">Les mêmes listes s\'affichent en touchant SARM, BLSE, P. aeruginosa, BHRe ou candidose (repérés par ⚑) dans les fiches.</p>${['bhre','blse','sarm','pyo','candida'].map(k=>fdrHTML(k,false)+((window.FDR[k]||{}).germ?`<p class="small"><a href="#g-${window.FDR[k].germ}">Fiche germe →</a></p>`:'')).join('')}`, open:true},
+  {id:'fdr', ico:'⚑', t:'Facteurs de risque de BMR / BHRe (et autres germes à couvrir)', raw:true, html:`<p class="muted small">Les mêmes listes s\'affichent en touchant SARM, BLSE, P. aeruginosa, BHRe, candidose, « <span class="noabbr">FdR</span> » ou un score (Peritonitis score, Candida score), repérés par ⚑ dans les fiches.</p>${['bhre','bmr','blse','sarm','pyo','enteroR','candida','flucoR','listeria','periscore','candscore'].map(k=>fdrHTML(k,false)+((window.FDR[k]||{}).germ?`<p class="small"><a href="#g-${window.FDR[k].germ}">Fiche germe →</a></p>`:'')).join('')}`, open:true},
   {id:'h-mso', ico:'📣', t:'Maladies à signalement obligatoire (MSO, ex-MDO)', raw:true, html:`<div class="narbox">${fmtText(H.msoHow)}</div><div class="toolbar"><input type="search" id="msoq" placeholder="Filtrer (ex. méningocoque, légionellose…)" value="${esc(MSOQ)}"></div><div id="msolist">${msoRows(MSOQ)}</div>`, open:true},
   {id:'h-ias', ico:'🏥', t:'Signalement des infections associées aux soins (e-SIN), cas groupés, AES', html:H.ias}
  ])}
