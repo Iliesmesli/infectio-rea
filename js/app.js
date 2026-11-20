@@ -238,7 +238,7 @@ function viewMolecules(){
  return `<section class="card"><div class="toolbar">
   <div class="seg">${[['all','Tous'],['ab','Antibactériens'],['af','Antifongiques'],['av','Antiviraux']].map(([k,l])=>`<button class="${molFilter.type===k?'on':''}" data-molt="${k}">${l}</button>`).join('')}</div>
   <input type="search" id="molq" placeholder="Filtrer (nom, classe, abréviation)…" value="${esc(molFilter.q)}"></div>
-  <div class="transv"><b>Fiches transversales</b> : <a href="#pharmaco-atx">🧪 Antitoxiniques</a> · <a href="#pharmaco-bio">🧫 Anti-biofilm</a> · <a href="#pharmaco-ivt">💉 Intraventriculaire</a> · <a href="#pharmaco-tox">⚠️ Toxicités & surveillance (encéphalopathie aux β-lactamines…)</a> · <a href="#pharmaco">📈 PK/PD & STP</a></div>
+  <div class="transv"><b>Fiches transversales</b> : <a href="#pharmaco-atx">🧪 Antitoxiniques</a> · <a href="#pharmaco-bio">🧫 Anti-biofilm</a> · <a href="#pharmaco-ivt">💉 Intraventriculaire</a> · <a href="#pharmaco-tox">⚠️ Toxicités & surveillance (encéphalopathie aux β-lactamines…)</a> · <a href="#pharmaco">📈 PK/PD & STP</a> · <a href="#pharmaco:diffusion">🧭 Diffusion tissulaire</a></div>
   ${groups.length? foldGroups('mol','mf',groups,{all:!!molFilter.q}) : '<p class="muted">Aucun résultat.</p>'}
  </section>`;
 }
@@ -609,6 +609,36 @@ function viewExam(id){
  <h3>Références</h3>${refList(e.refs)}</section>`;
 }
 
+/* ---------- Diffusion tissulaire (Pharmaco > PK/PD) ---------- */
+const DIF_BL='Partielle (≤ 1)', DIF_HI='Élevée (> 1)', DIF_OS='Bonne', DIF_INJ='Acceptable en IV (traitement 14 j)';
+const DIFF_ROWS=[
+ ['Pénicillines',[['peniG',DIF_BL,'Plus faible',''],['amox',DIF_BL,DIF_OS,''],['amoxclav',DIF_BL,'Bonne (amoxicilline)','Insuffisante : pas en relais oral'],['cloxa',DIF_BL,'Bonne (os) ; articulation : faible pour la flucloxacilline',''],['pipetazo',DIF_BL,DIF_OS,DIF_INJ]]],
+ ['Céphalosporines',[['cefazoline',DIF_BL,DIF_OS,''],['cefotax',DIF_BL,DIF_OS,DIF_INJ],['ceftriax',DIF_BL,DIF_OS,DIF_INJ],['ceftaz',DIF_BL,DIF_OS,DIF_INJ],['cefepime',DIF_BL,DIF_OS,DIF_INJ],['ceftaroline',DIF_BL,'',''],['ceftolo',DIF_BL,'',''],['cazavi',DIF_BL,'',''],['cefiderocol',DIF_BL,'','']]],
+ ['Carbapénèmes, monobactame',[['merope',DIF_BL,DIF_OS,DIF_INJ],['imipeneme',DIF_BL,DIF_OS,DIF_INJ],['ertapeneme',DIF_BL,DIF_OS,DIF_INJ],['aztreo',DIF_BL,DIF_OS,'']]],
+ ['Aminosides',[['amika',DIF_BL,DIF_OS,''],['genta',DIF_BL,DIF_OS,''],['tobra',DIF_BL,DIF_OS,'']]],
+ ['Anti-Gram positif',[['vanco',DIF_BL,DIF_OS,''],['teico',DIF_BL,'',''],['dapto','<b>Inactivée par le surfactant</b> : jamais pour une pneumonie',DIF_OS,''],['linez',DIF_HI,DIF_OS,'']]],
+ ['Fluoroquinolones',[['cipro','',DIF_OS,'Bonne'],['levo',DIF_HI,DIF_OS,'Bonne'],['moxi',DIF_HI,DIF_OS,'Non utilisée (concentrations urinaires faibles)']]],
+ ['Autres',[['cotrimox','',DIF_OS,'Bonne'],['metro','','Plus faible (os) ; articulation : faible',''],['clinda','',DIF_OS,''],['rifam','',DIF_OS,''],['fosfo','',DIF_OS,''],['doxy','',DIF_OS,''],['tigec','','','Non utilisée (concentrations sériques et urinaires faibles)'],['colistine','','',''],['azithro',DIF_HI,'','']]],
+ ['Antifongiques',[['fluco','','',''],['vorico','','',''],['isavu','','',''],['posa','','',''],['caspo','','',''],['mica','','',''],['amphoL','','',''],['5fc','','','']]],
+ ['Antiviraux',[['aciclo','','',''],['ganci','','',''],['foscarnet','','','']]]
+];
+function diffInner(){
+ const D={}; (window.DRUGS||[]).forEach(d=>D[d.id]=d);
+ const cell=x=>x?x:'<span class="muted">—</span>';
+ const ICO=['🟢','🔵','🟣','🟠','🔴','🟡','⚪','🍄','🦠'];
+ const groups=DIFF_ROWS.map(([fam,list],i)=>{ let rows=''; let n=0; list.forEach(([id,pu,os,pr])=>{ const d=D[id]; if(!d) return; n++; rows+=`<tr><td><a href="#m-${id}">${d.name}</a></td><td>${cell(d.lcr&&d.lcr!=='—'?d.lcr:'')}</td><td>${cell(pu)}</td><td>${cell(os)}</td><td>${cell(pr)}</td></tr>`; });
+  return ['df'+i,ICO[i]||'•',fam,n,`<div class="tblwrap"><table class="tbl tx"><tr><th>Molécule</th><th>LCR</th><th>Poumon (ELF)</th><th>Os</th><th>Prostate</th></tr>${rows}</table></div>`]; });
+ return `<h3 id="diffusion">7. Diffusion tissulaire par molécule</h3>
+ <p class="small">Repères <b>qualitatifs</b>. La diffusion dépend de la dose, de l'inflammation (méninges), de la liaison protéique et de la méthode de mesure (poumon : liquide épithélial alvéolaire, ELF, par lavage). Une bonne diffusion ne garantit pas l'efficacité : raisonner avec la CMI et les cibles PK/PD (§ 1–2). « — » = non renseigné par les sources retenues, et non « mauvaise diffusion ».</p>
+ <ul class="small">
+  <li><b>LCR</b> : texte de chaque fiche molécule (méninges inflammatoires). Rapport LCR/sérum proche de 1 pour linézolide, métronidazole, fluconazole et certaines fluoroquinolones (Nau 2010).</li>
+  <li><b>Poumon (ELF/plasma)</b> : &gt; 1 pour macrolides, fluoroquinolones récentes et oxazolidinones ; ≤ 1 pour β-lactamines, aminosides et glycopeptides (Rodvold 2011 ; mise à jour Drwiega 2022). Daptomycine inactivée par le surfactant.</li>
+  <li><b>Os et articulations</b> : la plupart des antibiotiques atteignent des concentrations supérieures aux CMI des germes usuels ; exceptions : pénicilline G et métronidazole (os), métronidazole et flucloxacilline (articulation) (Thabit 2019).</li>
+  <li><b>Prostate</b> : fluoroquinolones et cotrimoxazole à privilégier pour leur diffusion ; β-lactamines injectables acceptables (14 j) ; pas de céphalosporine orale ni d'amoxicilline-acide clavulanique en relais (recommandations SPILF, via Vidal ; Revue du Praticien).</li>
+ </ul>
+ ${foldGroups('diff','diff',groups,{nav:false})}
+ ${refChips(['nau10','rodvold11','drwiega22','thabit19','vidal_ium','revprat_ium'])}`;
+}
 /* ---------- PK/PD & STP ---------- */
 function viewPKPD(){ return pharmaShell('pkpd', pkpdInner()); }
 function pkpdInner(){
@@ -669,7 +699,8 @@ function pkpdInner(){
 
  <h3>6. Quand demander un STP ?</h3>
  <p>Hyperclairance, EER/ECMO, obésité, CMI élevée ou BGN non fermentant, infection du SNC/endocardite/os, échec clinique, toxicité suspectée (neurologique : céfépime, pipéracilline, méropénème, imipénème), molécule à marge étroite (aminosides, vancomycine, linézolide, voriconazole).</p>
- ${refChips(['sfar_bl2019','doses25','spilf_perf25','ansm_amino11','vanco20','colis19','goutelle23','abxbmi'])}`;
+ ${refChips(['sfar_bl2019','doses25','spilf_perf25','ansm_amino11','vanco20','colis19','goutelle23','abxbmi'])}
+ ${diffInner()}`;
 }
 
 /* ---------- PHARMACO : sous-onglets ---------- */
@@ -840,7 +871,7 @@ function viewRefs(){
 }
 
 /* ---------- ANTIBIOGRAMME ---------- */
-const APP_VERSION='1.36';
+const APP_VERSION='1.37';
 let SAMPLE = null, sampleImages=false;
 const PHOTO = {msg:'', thumbs:[]}; let PHOTO_TARGET='abg';
 function photoMsg(h){ PHOTO.msg=h; const m=document.getElementById('photomsg'); if(m) m.innerHTML=h; }
@@ -1215,6 +1246,7 @@ function searchAll(q){
   ['antitoxinique antitoxine toxine pvl choc toxique clindamycine','#pharmaco-atx','🧪 Antibiothérapie antitoxinique (Pharmaco)'],
   ['encephalopathie neurotoxicite toxicite convulsion myoclonie cefepime surveillance','#pharmaco-tox','⚠️ Toxicités & surveillance des anti-infectieux (Pharmaco)'],
   ['pkpd pharmacocinetique stp dosage cible cmi','#pharmaco','📈 PK/PD & STP (Pharmaco)'],
+  ['diffusion tissulaire lcr lcs poumon elf os prostate penetration','#pharmaco:diffusion','🧭 Diffusion tissulaire des anti-infectieux (Pharmaco)'],
   ['vaccin vaccination splenectomie asplenie breche implant cochleaire tetanos rage zona shingrix prevenar pneumocoque meningocoque eculizumab ravulizumab anti-complement','#vaccins','💉 Vaccins utiles en réanimation']];
  const nq=q.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
  KW.forEach(([k,h,l])=>{ if(nq.length>=3 && k.split(' ').some(w=>w.startsWith(nq)||nq.startsWith(w)&&w.length>=4)) r.push(`<a href="${h}">${l}</a>`); });

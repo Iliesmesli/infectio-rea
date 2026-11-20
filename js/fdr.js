@@ -43,11 +43,16 @@ window.FDR = {
  ei: {t:'Terrain à risque d\'endocardite infectieuse', germ:'', blocks:[
   {ctx:'Fiche Endocardite infectieuse (ESC 2023)', s:'esc_ei23', items:['Prothèse valvulaire / TAVI','Antécédent d\'endocardite','Cardiopathie congénitale','Toxicomanie IV','Stimulateur cardiaque / DAI','Hémodialyse, cathéters']}
  ]},
+ pss: {t:'Score de Pittsburgh (gravité d\'une perforation œsophagienne, 0–18)', germ:'', blocks:[
+  {ctx:'1 point', s:'schweigert16', items:['Âge > 75 ans','Tachycardie > 100/min','Leucocytes > 10 G/L','Épanchement pleural']},
+  {ctx:'2 points', items:['Fièvre > 38,5 °C','Fuite non contenue (scanner ou opacification)','Détresse respiratoire (FR > 30/min, besoins croissants en O2 ou ventilation mécanique)','Délai diagnostique > 24 h']},
+  {ctx:'3 points', items:['Cancer de l\'œsophage','Hypotension'], note:'Strates : ≤ 2 faible, 3–5 intermédiaire, > 5 élevé ; morbidité, recours à la chirurgie et mortalité augmentent avec la strate (validation multicentrique, Schweigert 2016). Aide à la décision, ne remplace pas l\'avis chirurgical.'}
+ ]},
  candscore: {t:'Candida score (León 2006)', germ:'calbicans', blocks:[
   {ctx:'Protocole NAR — seuil ≥ 2,5', s:'NAR', items:['Nutrition parentérale exclusive : 1','Colonisation fongique : 1','Sepsis sévère : 2','Chirurgie à l\'admission : 1'], note:'Score ≥ 2,5 (ou Peritonitis score ≥ 3) chez un patient en sepsis malgré ≥ 48 h d\'antibiotiques → mannane/anti-mannane + β-D-glucane.'}
  ]}
 };
-window.FDR_TERMS = {'SARM':'sarm','anti-SARM':'sarm','P. aeruginosa':'pyo','Pseudomonas aeruginosa':'pyo','anti-Pseudomonas':'pyo','BLSE':'blse','E-BLSE':'blse','EBLSE':'blse','BHRe':'bhre','EPC':'bhre','ERG':'bhre','candidose':'candida','candidose invasive':'candida','Peritonitis score':'periscore','score péritonite':'periscore','Candida score':'candscore'};
+window.FDR_TERMS = {'SARM':'sarm','anti-SARM':'sarm','P. aeruginosa':'pyo','Pseudomonas aeruginosa':'pyo','anti-Pseudomonas':'pyo','BLSE':'blse','E-BLSE':'blse','EBLSE':'blse','BHRe':'bhre','EPC':'bhre','ERG':'bhre','candidose':'candida','candidose invasive':'candida','Peritonitis score':'periscore','score péritonite':'periscore','Candida score':'candscore','score de Pittsburgh':'pss','Score de Pittsburgh':'pss'};
 /* « FdR » dans le texte : la liste correspondante est déduite du contexte (ce qui suit, sinon ce qui précède) */
 window.FDR_CTX = [
  [/^\s*(?:de |d['’])?\s*(?:souche |Candida |candida )?fluconazole-?R|^\s*de résistance au fluconazole/,'flucoR'],

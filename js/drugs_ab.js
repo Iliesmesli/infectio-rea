@@ -386,11 +386,11 @@ window.DRUGS.push(
  prec:'Durée ≤ 3 j (max 5 j) sauf exception (ANSM 2011). Éviter les autres néphrotoxiques (vancomycine, produits de contraste, diurétiques de l\'anse).',
  inter:'Vancomycine, colistine, AINS, furosémide, curares, ciclosporine.',
  admin:{dil:'NaCl 0,9 % ou G5 % (50–100 mL)', duree:'30 min, dose unique journalière (DUJ)', stab:'—'},
- dose:{std:'25–30 mg/kg en DUJ (poids total ; obèse : poids ajusté). Mycobactéries : 15 mg/kg/j'},
+ dose:{std:'25–30 mg/kg en DUJ (poids total ; obèse : poids ajusté) ; colonne « forte posologie » non applicable aux aminosides (SPILF/SFPT/CA-SFM 2025). Mycobactéries : 15 mg/kg/j. <b>30–35 mg/kg</b> : aucune recommandation française pour la réanimation ; le RCP ne le prévoit que pour la mucoviscidose. Des études PK françaises en réanimation montrent des pics souvent &lt; 60 mg/L à 25–30 mg/kg et proposent 30 à 35 mg/kg (ECMO, bilan hydrique positif, IMC bas), voire davantage selon le poids et la clairance → dose guidée par le pic (STP)'},
  renal:{arc:'30 mg/kg DUJ ; vérifier le pic', n:'Dose inchangée DUJ', m:'Dose (charge) inchangée ; réinjection guidée par Cmin (< 2,5 mg/L) — souvent q36–48h', s:'Dose inchangée ; réinjection quand Cmin < 2,5 mg/L (souvent q48h+)', es:'Dose inchangée ; réinjection selon Cmin — éviter si possible', crrt:'25 mg/kg ; réinjection quand Cmin < 2,5 mg/L (souvent q24–48h)', ihd:'25 mg/kg idéalement juste avant la séance (ou après selon protocole local) ; réinjection selon Cmin pré-dialyse'},
  tdm:'Pic (30 min après fin de perfusion) 60–80 mg/L (8–10 × CMI) ; Cmin < 2,5 mg/L avant réinjection (ANSM 2011). Dosage pic dès la 1re injection en réanimation.', lcr:'Faible : voie intraventriculaire possible (IDSA 2017 : 5–50 mg/j, usuellement 30 mg).',
  site:{snc:'caution',pulm:'caution',uri:'ok',bact:'caution',abdo:'caution',peau:'caution',os:'caution',endo:'caution',kt:'caution'},
- refs:['doses25','ansm_amino11','idsa_vent17','has_carba19']},
+ refs:['doses25','ansm_amino11','idsa_vent17','has_carba19','ami_ecmo18','ami_nomo23']},
 
 {id:'genta', type:'ab', name:'Gentamicine', cls:'Aminoside', alias:['gentamicine','gentamicin','GM','GEN','CN','gentamicine haut niveau','GHN'],
  forms:'Ampoules 10, 40, 80, 160 mg (IV).',

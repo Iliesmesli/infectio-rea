@@ -33,7 +33,7 @@ window.NARP = {
   diff:'Méningé : IDSA 2017 = 600 mg q12h ; NAR = 600 mg q8h.'},
  dapto: {n:'10 mg/kg × 1/j IVL 10 min', arc:'10 mg/kg × 1/j', seuil:'30 mL/min : même dose 1 jour sur 2', admin:'Indications NAR : bactériémie, peau et tissus mous, endocardite. Inefficace en pneumopathie. Chapitre « infections liées aux cathéters » : 6 mg/kg/j si exposition à la vancomycine (> 1 sem dans les 3 mois) ou insuffisance rénale.',
   diff:'Recos selon l\'indication : RCP 4 mg/kg (IcPTM) et 6 mg/kg (bactériémie à S. aureus, EI droite) ; ePOPI 6 mg/kg en bactériémie ; SPILF/SFPT/CA-SFM 2025 8–12 mg/kg ; ESC 2023 10 mg/kg (endocardite) ; ERV, os, matériel : 10–12 mg/kg. Le protocole NAR retient 10 mg/kg pour toutes les indications (6 mg/kg dans le chapitre cathéter : incohérence interne à signaler).'},
- amika: {n:'30 mg/kg IVL 30 min ; pic 60–80 mg/L, vallée < 2,5 mg/L', arc:'30 mg/kg', admin:'Obèse : poids ajusté = PIT + 0,4 × (poids réel − PIT). Pic 30 min après la fin de l\'injection ; vallée avant réinjection (en règle à H24).', diff:'Recos : 25–30 mg/kg — NAR : 30 mg/kg d\'emblée.'},
+ amika: {n:'30 mg/kg IVL 30 min ; pic 60–80 mg/L, vallée < 2,5 mg/L', arc:'30 mg/kg', admin:'Obèse : poids ajusté = PIT + 0,4 × (poids réel − PIT). Pic 30 min après la fin de l\'injection ; vallée avant réinjection (en règle à H24).'},
  genta: {n:'8 mg/kg IVL 30 min ; pic 30–40 mg/L, vallée < 0,5 mg/L', arc:'8 mg/kg', snc:'5 mg/kg/j', admin:'Obèse : poids ajusté. Pic 30 min après la fin de l\'injection.', diff:'Recos : 5–8 mg/kg (CA-SFM : 6–7) — NAR : 8 mg/kg.'},
  metro: {n:'500 mg × 3/j IVL 1 h', snc:'500 mg × 3/j IVL', diff:'Concordant.'},
  fosfo: {snc:'4 g × 3/j IVL', cmax:'20 mg/mL', diff:'Concordant.'},
