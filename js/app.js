@@ -617,27 +617,31 @@ const DIFF_ROWS=[
  ['Carbapénèmes, monobactame',[['merope',DIF_BL,DIF_OS,DIF_INJ],['imipeneme',DIF_BL,DIF_OS,DIF_INJ],['ertapeneme',DIF_BL,DIF_OS,DIF_INJ],['aztreo',DIF_BL,DIF_OS,'']]],
  ['Aminosides',[['amika',DIF_BL,DIF_OS,''],['genta',DIF_BL,DIF_OS,''],['tobra',DIF_BL,DIF_OS,'']]],
  ['Anti-Gram positif',[['vanco',DIF_BL,DIF_OS,''],['teico',DIF_BL,'',''],['dapto','<b>Inactivée par le surfactant</b> : jamais pour une pneumonie',DIF_OS,''],['linez',DIF_HI,DIF_OS,'']]],
- ['Fluoroquinolones',[['cipro','',DIF_OS,'Bonne'],['levo',DIF_HI,DIF_OS,'Bonne'],['moxi',DIF_HI,DIF_OS,'Non utilisée (concentrations urinaires faibles)']]],
- ['Autres',[['cotrimox','',DIF_OS,'Bonne'],['metro','','Plus faible (os) ; articulation : faible',''],['clinda','',DIF_OS,''],['rifam','',DIF_OS,''],['fosfo','',DIF_OS,''],['doxy','',DIF_OS,''],['tigec','','','Non utilisée (concentrations sériques et urinaires faibles)'],['colistine','','',''],['azithro',DIF_HI,'','']]],
+ ['Fluoroquinolones',[['cipro','',DIF_OS,'Bonne'],['levo',DIF_HI,DIF_OS,'Bonne'],['moxi',DIF_HI,DIF_OS,'']]],
+ ['Autres',[['cotrimox','',DIF_OS,'Bonne'],['metro','','Plus faible (os) ; articulation : faible',''],['clinda','',DIF_OS,''],['rifam','',DIF_OS,''],['fosfo','',DIF_OS,''],['doxy','',DIF_OS,''],['tigec','','',''],['colistine','','',''],['azithro',DIF_HI,'','']]],
  ['Antifongiques',[['fluco','','',''],['vorico','','',''],['isavu','','',''],['posa','','',''],['caspo','','',''],['mica','','',''],['amphoL','','',''],['5fc','','','']]],
  ['Antiviraux',[['aciclo','','',''],['ganci','','',''],['foscarnet','','','']]]
 ];
 function diffInner(){
  const D={}; (window.DRUGS||[]).forEach(d=>D[d.id]=d);
  const cell=x=>x?x:'<span class="muted">—</span>';
+ const URI_OV={moxi:'Faibles (élimination hépatique)',tigec:'Faibles (élimination biliaire)',caspo:'Faibles',mica:'Faibles',anidula:'Faibles',fluco:'Élevées (≈ 80 % sous forme inchangée)',colistine:''};
+ const uri=d=>{ if(d.id in URI_OV) return URI_OV[d.id]; const m=(d.pkpd||'').match(/[ÉE]limination[^.;(]*/i); return m?m[0].trim():''; };
  const ICO=['🟢','🔵','🟣','🟠','🔴','🟡','⚪','🍄','🦠'];
- const groups=DIFF_ROWS.map(([fam,list],i)=>{ let rows=''; let n=0; list.forEach(([id,pu,os,pr])=>{ const d=D[id]; if(!d) return; n++; rows+=`<tr><td><a href="#m-${id}">${d.name}</a></td><td>${cell(d.lcr&&d.lcr!=='—'?d.lcr:'')}</td><td>${cell(pu)}</td><td>${cell(os)}</td><td>${cell(pr)}</td></tr>`; });
-  return ['df'+i,ICO[i]||'•',fam,n,`<div class="tblwrap"><table class="tbl tx"><tr><th>Molécule</th><th>LCR</th><th>Poumon (ELF)</th><th>Os</th><th>Prostate</th></tr>${rows}</table></div>`]; });
+ const groups=DIFF_ROWS.map(([fam,list],i)=>{ let rows=''; let n=0; list.forEach(([id,pu,os,pr])=>{ const d=D[id]; if(!d) return; n++; rows+=`<tr><td><a href="#m-${id}">${d.name}</a></td><td>${cell(d.lcr&&d.lcr!=='—'?d.lcr:'')}</td><td>${cell(pu)}</td><td>${cell(os)}</td><td>${cell(pr)}</td><td>${cell(uri(d))}</td></tr>`; });
+  return ['df'+i,ICO[i]||'•',fam,n,`<div class="tblwrap"><table class="tbl tx"><tr><th>Molécule</th><th>LCR</th><th>Poumon (ELF)</th><th>Os</th><th>Prostate</th><th>Urines (élimination)</th></tr>${rows}</table></div>`]; });
  return `<h3 id="diffusion">7. Diffusion tissulaire par molécule</h3>
  <p class="small">Repères <b>qualitatifs</b>. La diffusion dépend de la dose, de l'inflammation (méninges), de la liaison protéique et de la méthode de mesure (poumon : liquide épithélial alvéolaire, ELF, par lavage). Une bonne diffusion ne garantit pas l'efficacité : raisonner avec la CMI et les cibles PK/PD (§ 1–2). « — » = non renseigné par les sources retenues, et non « mauvaise diffusion ».</p>
  <ul class="small">
   <li><b>LCR</b> : texte de chaque fiche molécule (méninges inflammatoires). Rapport LCR/sérum proche de 1 pour linézolide, métronidazole, fluconazole et certaines fluoroquinolones (Nau 2010).</li>
   <li><b>Poumon (ELF/plasma)</b> : &gt; 1 pour macrolides, fluoroquinolones récentes et oxazolidinones ; ≤ 1 pour β-lactamines, aminosides et glycopeptides (Rodvold 2011 ; mise à jour Drwiega 2022). Daptomycine inactivée par le surfactant.</li>
   <li><b>Os et articulations</b> : la plupart des antibiotiques atteignent des concentrations supérieures aux CMI des germes usuels ; exceptions : pénicilline G et métronidazole (os), métronidazole et flucloxacilline (articulation) (Thabit 2019).</li>
+  <li><b>Urines</b> : colonne reprenant la voie d'élimination indiquée dans chaque fiche ; concentrations urinaires faibles pour la moxifloxacine et la tigécycline. Antifongiques : échinocandines peu présentes dans les urines, l'œil et le LCR → fluconazole préféré pour ces sites si la souche est sensible (IDSA 2016).</li>
+  <li><b>Bile</b> : la pénétration biliaire n'est qu'un critère secondaire ; l'activité sur le germe prime, et le drainage reste le traitement principal de l'angiocholite (Tokyo Guidelines, Tanaka 2007).</li>
   <li><b>Prostate</b> : fluoroquinolones et cotrimoxazole à privilégier pour leur diffusion ; β-lactamines injectables acceptables (14 j) ; pas de céphalosporine orale ni d'amoxicilline-acide clavulanique en relais (recommandations SPILF, via Vidal ; Revue du Praticien).</li>
  </ul>
  ${foldGroups('diff','diff',groups,{nav:false})}
- ${refChips(['nau10','rodvold11','drwiega22','thabit19','vidal_ium','revprat_ium'])}`;
+ ${refChips(['nau10','rodvold11','drwiega22','thabit19','vidal_ium','revprat_ium','idsa_cand16','tg07_bil'])}`;
 }
 /* ---------- PK/PD & STP ---------- */
 function viewPKPD(){ return pharmaShell('pkpd', pkpdInner()); }
@@ -765,11 +769,11 @@ function viewTox(){
   <li><b>En résumé</b> : efficacité comparable et <b>nettement moins d'IRA et d'arrêts pour intolérance sous céfazoline</b>.</li>
   <li><b>Mécanisme côté pénicilline M</b> : néphrite interstitielle immuno-allergique (RCP) ; effet dose (CloCeBa : 8–12 g/j).</li>
   <li><b>Effet inoculum (β-lactamase de type A)</b> : question non tranchée. Dans CloCeBa, échecs microbiologiques 10 % contre 5 % dans ce sous-groupe (non significatif) ; dans SNAP, analyses non encore publiées. Endocardites et foyers profonds restent peu représentés.</li>
-  <li><b>Système nerveux central</b> : <b>pas de données</b> dans ces deux essais (exclus ou trop peu nombreux). La SPILF 2016 indique une <b>diffusion faible dans le LCR</b> et ne propose pas la céfazoline dans les infections du SNC (avis spécialisé recommandé) ; le protocole NAR prévoit pourtant une dose méningée (8–12 g/j IVSE) — écart à trancher avec l'équipe.</li>
+  <li><b>Système nerveux central</b> : <b>pas de données</b> dans ces deux essais (exclus ou trop peu nombreux). La SPILF 2016 (rupture de pénicillines M) indiquait une diffusion faible dans le LCR et ne proposait pas la céfazoline pour le SNC. Données plus récentes : à forte dose en continu, concentrations libres dans le LCR au-dessus des CMI usuelles des SAMS (Grégoire 2019) ; série nantaise de méningites staphylococciques avec des concentrations LCR plus élevées sous céfazoline que sous cloxacilline (Le Turnier 2020) ; modèles PK en faveur de 8–12 g/j en continu (Onita 2025 ; Dubinsky 2026). Le <b>protocole NAR</b> prévoit 8–12 g/j IVSE (prioritaire). Pas d'essai randomisé.</li>
   <li><b>Pénicilline G (souche péni-S)</b> : dans SNAP (Lancet 2026), moins d'IRA qu'avec la (fluclo)xacilline (11 % contre 22 %), mortalité J90 14 % contre 21 % (non-infériorité).</li>
-  <li><b>Pratique en neuroréa</b> (hors SNC) : la céfazoline est une option à privilégier chez le patient à risque rénal (IRA, néphrotoxiques associés : produits de contraste, aminosides, vancomycine) ; garder la cloxacilline pour l'infection du SNC. Surveillance de la céfazoline : TP hebdomadaire (NAR).</li>
+  <li><b>Pratique en neuroréa</b> (hors SNC) : la céfazoline est une option à privilégier chez le patient à risque rénal (IRA, néphrotoxiques associés : produits de contraste, aminosides, vancomycine) ; pour le SNC, cloxacilline ou céfazoline à forte dose en continu (protocole NAR). Surveillance de la céfazoline : TP hebdomadaire (NAR).</li>
  </ul>
- ${refChips(['cloceba25','snap_cfz26','snap_peni26','spilf_penim16','esc_ei23','spilf_aepei25','nar25'])}
+ ${refChips(['cloceba25','snap_cfz26','snap_peni26','spilf_penim16','gregoire19','leturnier20','onita25','dubinsky26','esc_ei23','spilf_aepei25','nar25'])}
  <h3 id="lzdmyelo">3. Myélotoxicité du linézolide</h3>
  <ul class="pts">
   <li>Surveillance : <b>NFS 2 fois par semaine</b> (protocole NAR) ; RCP : 1 fois par semaine pour tous, plus étroite si cytopénie préexistante, insuffisance rénale sévère ou traitement > 10–14 jours.</li>
@@ -796,7 +800,7 @@ function viewTox(){
  <h3 id="interneuro">6. Interactions critiques en neuroréanimation</h3>
  <table class="tbl"><tr><th>Anti-infectieux</th><th>Interaction</th><th>Conséquence / conduite</th></tr>
  <tr><td>Carbapénèmes (méropénème, imipénème, ertapénème)</td><td>Acide valproïque</td><td>Chute rapide et durable de la valproatémie → crises : association déconseillée, changer d'antiépileptique ou d'antibiotique.</td></tr>
- <tr><td>Rifampicine</td><td>Nimodipine (contre-indiquée), antiépileptiques, AVK/AOD, voriconazole (contre-indiqué)</td><td>Inducteur puissant ; l'induction persiste ≈ 2 semaines après l'arrêt.</td></tr>
+ <tr><td>Rifampicine</td><td>Nimodipine (contre-indiquée per os, déconseillée IV : ↓ concentrations par induction ; surveiller PA/doppler), antiépileptiques, AVK/AOD, voriconazole (contre-indiqué)</td><td>Inducteur puissant ; l'induction persiste ≈ 2 semaines après l'arrêt.</td></tr>
  <tr><td>Linézolide</td><td>ISRS, IRSNa, opioïdes sérotoninergiques</td><td>Syndrome sérotoninergique (effet IMAO faible) : surveillance étroite si l'association est inévitable.</td></tr>
  <tr><td>Imipénème, fluoroquinolones, céfépime</td><td>Lésion cérébrale, épilepsie</td><td>Abaissement du seuil épileptogène / neurotoxicité : préférer d'autres molécules si possible.</td></tr>
  <tr><td>Voriconazole, fluconazole, posaconazole</td><td>Substrats du CYP3A4 (nimodipine, midazolam, tacrolimus…)</td><td>Inhibition enzymatique : majoration des concentrations ; adapter et doser.</td></tr></table>
@@ -871,7 +875,7 @@ function viewRefs(){
 }
 
 /* ---------- ANTIBIOGRAMME ---------- */
-const APP_VERSION='1.37';
+const APP_VERSION='1.38';
 let SAMPLE = null, sampleImages=false;
 const PHOTO = {msg:'', thumbs:[]}; let PHOTO_TARGET='abg';
 function photoMsg(h){ PHOTO.msg=h; const m=document.getElementById('photomsg'); if(m) m.innerHTML=h; }

@@ -7,7 +7,7 @@ window.HIER = {
   {s:'SAMS (méti-S)', t:[
    ['1','<b>Protocole NAR</b> : souche sauvage (oxa-S, amox-S) → amoxicilline ; souche à pénicillinase (amox-R) → céfazoline (bolus 2 g puis 10–12 g/24 h) ou cloxacilline (10–12 g/24 h en continu).'],
    ['1','Recos : cloxacilline ou céfazoline (bactériémie, endocardite : efficacité équivalente, céfazoline mieux tolérée).'],
-   ['1','SNC (méningite, abcès cérébral) : cloxacilline (céfazoline : diffusion insuffisante) — ou céfotaxime forte dose.'],
+   ['1','SNC (méningite, abcès cérébral) : cloxacilline, ou céfazoline à forte dose en continu (8–12 g/j, protocole NAR ; données PK favorables, pas de recommandation) — ou céfotaxime forte dose.'],
    ['2','Poumon : céfazoline ou amox-clav si polymicrobien ; os/matériel : + rifampicine après stérilisation des hémocultures.'],
    ['A','Allergie non grave : céfazoline. Allergie grave : daptomycine (bactériémie, endocardite) ou vancomycine ; linézolide (poumon, SNC).'],
    ['X','Vancomycine si β-lactamine possible (moins efficace sur SAMS).']]},

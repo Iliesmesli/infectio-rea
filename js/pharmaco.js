@@ -6,7 +6,7 @@ window.ANTITOX = {id:'antitox', cat:'Transversal', name:'Antibiothérapie antito
  '<tr><td><b>Linézolide</b></td><td>+++</td><td>Forte réduction de PVL, TSST-1, α-toxine in vitro ; actif sur SARM et indépendant de la résistance MLSb ; excellente diffusion pulmonaire. Préféré pour PVL/SARM ou si clindamycine R.</td></tr>'+
  '<tr><td><b>Clindamycine</b></td><td>+++</td><td>Référence pour le SGA (indépendante de l\'inoculum, « effet Eagle » — Stevens 1988) ; adjonction associée à une baisse de mortalité dans les infections invasives à streptocoque β-hémolytique (Babiker 2021). Inefficace si résistance (vérifier le test D : résistance inductible MLSb).</td></tr>'+
  '<tr><td>Tédizolide</td><td>++/+++</td><td>Données in vitro favorables (non validé cliniquement dans cette indication).</td></tr>'+
- '<tr><td>Rifampicine</td><td>++</td><td>Diminue la PVL in vitro (Dumitrescu 2007) ; jamais seule ; interactions (nimodipine CI).</td></tr>'+
+ '<tr><td>Rifampicine</td><td>++</td><td>Diminue la PVL in vitro (Dumitrescu 2007) ; jamais seule ; interactions (nimodipine : CI per os, déconseillée IV).</td></tr>'+
  '<tr><td>Acide fusidique</td><td>++</td><td>Diminue la PVL in vitro ; usage limité en réanimation.</td></tr>'+
  '<tr><td>Macrolides (azithro/érythro)</td><td>+</td><td>Effet modeste, résistances fréquentes chez SGA/S. aureus.</td></tr>'+
  '<tr><td>Vancomycine</td><td>0</td><td>Pas d\'effet antitoxinique.</td></tr>'+
@@ -43,7 +43,7 @@ window.ANTIBIOFILM = {
   <li><b>Jamais en monothérapie</b> : rifampicine, acide fusidique, fluoroquinolones, fosfomycine (SPILF 2009).</li>
   <li><b>Moment d'introduction</b> : après stérilisation des hémocultures (SPILF/AEPEI 2025) — en pratique après 3–5 jours de traitement efficace — pour limiter la sélection de mutants résistants sous forte charge bactérienne.</li>
   <li><b>Antibiogramme</b> : vérifier la sensibilité à la rifampicine (et aux fluoroquinolones) du partenaire.</li>
-  <li><b>Interactions en neuroréanimation</b> : inducteur puissant — nimodipine (contre-indiquée), antiépileptiques, voriconazole (contre-indiqué), clindamycine. Voir <a href="#pharmaco-tox:interneuro">Toxicités → interactions neuroréa</a> et la <a href="#m-rifam">fiche rifampicine</a> (posologies, protocole NAR).</li>
+  <li><b>Interactions en neuroréanimation</b> : inducteur puissant — nimodipine (contre-indiquée per os, déconseillée IV), antiépileptiques, voriconazole (contre-indiqué), clindamycine. Voir <a href="#pharmaco-tox:interneuro">Toxicités → interactions neuroréa</a> et la <a href="#m-rifam">fiche rifampicine</a> (posologies, protocole NAR).</li>
   <li><b>Disponibilité</b> : tensions d'approvisionnement répétées sur les formes orales (restriction des indications par l'ANSM d'avril 2024 au 3 février 2025) — vérifier auprès de la pharmacie.</li>
  </ul>`,
  duree:`<ul class="pts">

@@ -103,7 +103,7 @@ const RULES = {
    C('clinda',{note:'Relais oral peau/os (si S, vérifier résistance inductible).'})
  ] : [
    C('cloxa',{note:'Référence pour les SAMS (supérieure à la vancomycine). SNC : 200 mg/kg/j en continu.'}),
-   C('cefazoline',{note:'Équivalente à la cloxacilline pour les bactériémies, mieux tolérée ; NON pour le SNC.'}),
+   C('cefazoline',{note:'Équivalente à la cloxacilline pour les bactériémies, mieux tolérée ; SNC : seulement à forte dose en continu (8–12 g/j, protocole NAR ; données PK, pas de recommandation).'}),
    C(['cloxa','fosfo'],{note:'Méningite/ventriculite/abcès à SAMS : association discutée pour la diffusion (surcharge sodée !).', only:['snc','abces']}),
    C('cotrimox',{note:'Relais (os, peau, SNC en association) ; allergie.'}),
    C(['levo','rifam'],{note:'Relais oral sur matériel/os.'}),
@@ -440,7 +440,7 @@ function evaluate(iso, sites, pat, opts={}){
    // neuro
    const warns=[];
    if(pat.valproate && c.d.some(x=>['merope','imipeneme','ertapeneme','imirele','merovabor'].includes(x))) { warns.push('⚠ Acide valproïque : association déconseillée (chute de la valproatémie)'); score+=50; }
-   if(pat.nimodipine && c.d.includes('rifam')) { warns.push('⚠ Nimodipine : contre-indiquée avec la rifampicine'); score+=200; }
+   if(pat.nimodipine && c.d.includes('rifam')) { warns.push('⚠ Nimodipine + rifampicine : contre-indiquée per os, déconseillée IV (↓ concentrations de nimodipine)'); score+=120; }
    if(pat.neuro && c.d.includes('imipeneme')) { warns.push('⚠ Cérébrolésé : imipénème pro-convulsivant'); score+=40; }
    if(pat.neuro && c.d.includes('cefepime')) warns.push('Céfépime : neurotoxicité — STP, EEG si trouble de conscience');
    if(pat.neuro && c.d.some(x=>['cipro','levo','moxi'].includes(x))) warns.push('FQ : abaissement du seuil épileptogène');
